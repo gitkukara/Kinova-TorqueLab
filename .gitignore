@@ -11,6 +11,7 @@ docs/
 
 torque_platform/data/
 data/
+figures/
 *.npz
 *_safety_events.txt
 
