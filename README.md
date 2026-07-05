@@ -24,6 +24,7 @@ Kinova-TorqueLab/
       ├─ hold.py              # 初始位置保持控制器
       ├─ pid.py               # PID 跟踪控制器
       ├─ brl_ppc.py           # BRL-PPC 控制器
+      ├─ dppcdetc.py          # DPPC-DETC 控制器
       └─ new_controller_template.py
 ```
 
@@ -71,6 +72,7 @@ python3 -m pip install ./kortex_api-2.7.0.post5-py3-none-any.whl
 - `hold`：低增益 PD 保持进入实验时的初始位置，适合先检查力矩模式和安全流程。
 - `pid`：带相位提前的 PID 轨迹跟踪控制器，适合基础跟踪实验。
 - `brl_ppc`：自研控制器。
+- `dppcdetc`：从 `DPPCDETC.m` 接入的自适应预设性能动态事件触发控制器。
 
 日常使用时，通常只需要在 `config.py` 中选择控制器并调整参数，然后运行：
 
@@ -82,6 +84,12 @@ py torque_platform/main.py
 
 ```powershell
 py torque_platform/main.py --controller hold --duration 5
+```
+
+运行 DPPC-DETC 控制器：
+
+```powershell
+py torque_platform/main.py --controller dppcdetc
 ```
 
 VS Code 中可以直接使用 `.vscode/launch.json` 里的运行配置：
