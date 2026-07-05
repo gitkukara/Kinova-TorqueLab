@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.whl
+
+.venv/
+venv/
+env/
+
+torque_platform/data/
+data/
+*.npz
+*_safety_events.txt
+
+.DS_Store
+Thumbs.db

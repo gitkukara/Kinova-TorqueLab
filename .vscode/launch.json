@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Torque Platform: config.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/torque_platform/main.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Torque Platform: hold 5s",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/torque_platform/main.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "args": [
+        "--controller",
+        "hold",
+        "--duration",
+        "5"
+      ]
+    }
+  ]
+}
