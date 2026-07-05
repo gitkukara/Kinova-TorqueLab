@@ -84,7 +84,13 @@ py torque_platform/main.py
 py torque_platform/main.py --controller hold --duration 5
 ```
 
-VS Code 中可以直接使用 `.vscode/launch.json` 里的运行配置。
+VS Code 中可以直接使用 `.vscode/launch.json` 里的运行配置：
+
+- `实验：按 config.py 运行`：按 `config.py` 当前设置启动完整实验。
+- `实验：hold 保持 5 秒`：短时间运行 `hold` 控制器，用于检查连接、模式切换和基础安全流程。
+- `绘图：显示最新数据`：自动读取最新 `.npz` 数据并显示速览图。
+- `绘图：显示指定数据`：手动输入 `.npz` 数据文件路径并显示图像。
+- `绘图：保存指定数据 PNG+PDF`：手动输入 `.npz` 数据文件路径，并把图像保存到 `figures/`。
 
 
 ## 新增控制器
