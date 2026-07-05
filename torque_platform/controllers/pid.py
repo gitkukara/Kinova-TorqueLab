@@ -37,6 +37,16 @@ class PIDController(BaseController):
         self.integral = np.zeros_like(q0, dtype=float)
         self.last_t = None
 
+    def get_params(self):
+        return {
+            "kp": np.diag(self.kp),
+            "ki": np.diag(self.ki),
+            "kd": np.diag(self.kd),
+            "integral_limit": self.integral_limit,
+            "torque_limit": self.torque_limit,
+            "phase_lead_s": self.phase_lead_s,
+        }
+
     def compute(self, t, q, dq, xr, dxr, ddxr):
         if self.reference is not None and np.any(self.phase_lead_s):
             xr, dxr, ddxr = self.reference.sample(t, self.phase_lead_s)

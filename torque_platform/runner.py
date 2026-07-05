@@ -19,6 +19,11 @@ def _param_array(value):
     return np.asarray(value)
 
 
+def _add_param_arrays(arrays, prefix, params):
+    for key, value in params.items():
+        arrays[f"{prefix}_{key}"] = _param_array(value)
+
+
 class ExperimentRunner:
     def __init__(
         self,
@@ -145,7 +150,7 @@ class ExperimentRunner:
             self.robot.cleanup(return_home=True)
 
     def save(self, log, controller_name):
-        if not log.get("t"):
+        if len(log.get("t", [])) == 0:
             print("No data to save.")
             return None
         data_dir = self.data_dir or os.path.join(os.getcwd(), "data")
@@ -163,7 +168,42 @@ class ExperimentRunner:
         )
         arrays["p_position_bound"] = _param_array(self.safety_config.position_bound)
         arrays["p_velocity_bound"] = _param_array(self.safety_config.velocity_bound)
+        arrays["p_stop_on_position_bound"] = np.asarray(
+            self.safety_config.stop_on_position_bound
+        )
+        arrays["p_stop_on_velocity_bound"] = np.asarray(
+            self.safety_config.stop_on_velocity_bound
+        )
+        arrays["p_stop_on_nonfinite_feedback"] = np.asarray(
+            self.safety_config.stop_on_nonfinite_feedback
+        )
+        arrays["p_stop_on_nonfinite_torque"] = np.asarray(
+            self.safety_config.stop_on_nonfinite_torque
+        )
         arrays["p_controller"] = np.asarray(controller_name)
+
+        _add_param_arrays(
+            arrays,
+            "p_robot",
+            {
+                "torque_joints": self.robot.torque_joints,
+                "start_angles_deg": self.robot.start_angles_deg,
+            },
+        )
+        _add_param_arrays(
+            arrays,
+            "p_reference",
+            {
+                "center_rad": self.reference.center,
+                "amplitude_deg": np.degrees(self.reference.amplitude),
+                "period_s": self.reference.period_s,
+            },
+        )
+        _add_param_arrays(
+            arrays,
+            "p_controller",
+            self.controller.get_params(),
+        )
         np.savez(filename, **arrays)
 
         safety_path = os.path.splitext(filename)[0] + "_safety_events.txt"

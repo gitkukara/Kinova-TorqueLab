@@ -26,6 +26,7 @@ class BRLPPCController(BaseController):
     def __init__(self, dt=0.001, torque_limit=50.0, seed=None):
         self.dt = float(dt)
         self.torque_limit = float(torque_limit)
+        self.seed = seed
         self.rng = np.random.default_rng(seed)
 
         self.k1 = np.diag([5.0, 5.0])
@@ -97,6 +98,40 @@ class BRLPPCController(BaseController):
         for _ in range(buffer_size):
             self.q_buffer.append(np.asarray(q0, dtype=float).copy())
             self.wc_buffer.append(self.wc_hat.copy())
+
+    def get_params(self):
+        return {
+            "dt": self.dt,
+            "torque_limit": self.torque_limit,
+            "seed": -1 if self.seed is None else self.seed,
+            "k1": np.diag(self.k1),
+            "k2": np.diag(self.k2),
+            "t_transition": self.t_transition,
+            "mu_h": self.mu_h,
+            "rho_0": self.rho_0,
+            "rho_inf": self.rho_inf,
+            "l_i": self.l_i,
+            "delta_u": self.delta_u,
+            "delta_l": self.delta_l,
+            "la": self.la,
+            "sigma_a": self.sigma_a,
+            "b_a": self.b_a,
+            "na_initial": self.na_initial,
+            "na_max": self.na_max,
+            "input_dim_a": self.input_dim_a,
+            "bls_n_closest": self.bls_n_closest,
+            "bls_threshold_rho": self.bls_threshold_rho,
+            "bls_beta_gamma": self.bls_beta_gamma,
+            "nc": self.nc,
+            "lc": self.lc,
+            "sigma_c": self.sigma_c,
+            "b_c": self.b_c,
+            "input_dim_c": self.input_dim_c,
+            "tc": self.tc,
+            "vartheta": self.vartheta,
+            "cp": self.cp,
+            "eps": self.eps,
+        }
 
     def compute(self, t, q, dq, xr, dxr, ddxr):
         self.last_xr = xr.copy()

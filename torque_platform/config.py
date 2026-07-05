@@ -22,6 +22,14 @@ DT = 0.001
 TORQUE_LIMIT = 50.0
 LOG_EVERY = 1
 
+# 实验结束后自动显示本次实验的速览图。
+# 默认只看一眼，不保存图片；需要正式出图时再单独运行 plot_results.py。
+PLOT_AFTER_RUN = True
+PLOT_SHOW = True
+PLOT_SAVE = False
+PLOT_OUTDIR = "figures"
+PLOT_FORMATS = ["png", "pdf"]
+
 
 # 框架安全设置
 # 最终下发前的力矩限幅。None 表示沿用 TORQUE_LIMIT。

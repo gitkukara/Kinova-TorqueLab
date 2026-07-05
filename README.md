@@ -2,7 +2,7 @@
 
 Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级力矩控制实验框架，用于快速接入、切换和验证不同关节力矩控制算法。
 
-框架默认面向 J4/J6 两关节实验，集成了机器人连接、参考轨迹生成、控制器注册、安全限幅、实时控制循环和数据记录。新的控制算法通常只需要新增一个控制器文件，不需要改动主循环。
+本框架基于 [Kinova Kortex API](https://github.com/Kinovarobotics/Kinova-kortex2_Gen3_G3L)，默认面向两关节实验，集成了机器人连接、参考轨迹生成、控制器注册、安全限幅、实时控制循环和数据记录。新的控制算法通常只需要新增一个控制器文件，不需要改动主循环。
 
 
 ## 项目结构
@@ -30,13 +30,13 @@ Kinova-TorqueLab/
 
 ## 环境依赖
 
-需要提前安装：
+Windows 或 Linux 系统，需要提前安装：
 
 - Python 3.11 或相近版本
 - `numpy`
 - Kinova Kortex Python API
 
-Kinova Kortex Python API 需要从 Kinova 官方 Artifactory 下载对应版本的 `.whl` 文件：
+其中 Kinova Kortex Python API 需要从 Kinova 官方 Artifactory 下载机械臂硬件对应版本的 `.whl` 文件，如 2.7.0 版本链接如下：
 
 ```text
 https://artifactory.kinovaapps.com/ui/repos/tree/General/generic-public/kortex/API/2.7.0
@@ -44,32 +44,35 @@ https://artifactory.kinovaapps.com/ui/repos/tree/General/generic-public/kortex/A
 
 下载后在终端中进入项目所在环境，使用 `pip` 安装该 wheel 文件：
 
-```powershell
-python -m pip install <whl relative fullpath name>.whl
-```
-
-例如：
+Windows：
 
 ```powershell
 python -m pip install .\kortex_api-2.7.0.post5-py3-none-any.whl
 ```
 
-如果你的 Windows 环境中 `python` 指向的不是实验用解释器，也可以使用：
+Linux：
 
-```powershell
-py -m pip install .\kortex_api-2.7.0.post5-py3-none-any.whl
+```bash
+python3 -m pip install ./kortex_api-2.7.0.post5-py3-none-any.whl
 ```
 
 
 ## 快速运行
 
-日常实验优先修改：
+实验前建议先看这几个文件：
 
-```text
-torque_platform/config.py
-```
+- `torque_platform/config.py`：最主要的调参入口。机器人连接、实验时长、受控关节、初始位置、参考轨迹、安全限幅和控制器参数都优先在这里修改。
+- `.vscode/launch.json`：VS Code 调试入口。适合直接启动默认实验，或启动短时间 `hold` 测试。
+- `torque_platform/controllers/`：控制器文件夹。新增算法通常只需要在这里新增一个控制器文件。
+- `torque_platform/main.py`：程序入口。一般不需要改，除非要新增命令行参数或改变整体运行流程。
 
-然后运行：
+当前已有控制器：
+
+- `hold`：低增益 PD 保持进入实验时的初始位置，适合先检查力矩模式和安全流程。
+- `pid`：带相位提前的 PID 轨迹跟踪控制器，适合基础跟踪实验。
+- `brl_ppc`：自研控制器。
+
+日常使用时，通常只需要在 `config.py` 中选择控制器并调整参数，然后运行：
 
 ```powershell
 py torque_platform/main.py
@@ -84,37 +87,11 @@ py torque_platform/main.py --controller hold --duration 5
 VS Code 中可以直接使用 `.vscode/launch.json` 里的运行配置。
 
 
-## 常用配置
-
-```python
-CONTROLLER = "pid"          # pid / hold / brl_ppc
-DURATION = 20.0
-DT = 0.001
-TORQUE_JOINTS = [3, 5]      # 默认 J4/J6
-START_ANGLES_DEG = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -90.0]
-
-REFERENCE_CENTER_RAD = [0.0, 0.0]
-REFERENCE_AMPLITUDE_DEG = [15.0, 15.0]
-REFERENCE_PERIOD_S = [5.0, 5.0]
-```
-
-安全相关参数也在 `config.py` 中：
-
-```python
-SAFETY_TORQUE_LIMIT = None
-TORQUE_RATE_LIMIT = None
-POSITION_BOUND = 0.45
-VELOCITY_BOUND = 1.0
-```
-
-
 ## 新增控制器
 
-最简单的方式：
-
-1. 复制 `torque_platform/controllers/new_controller_template.py`。
-2. 改成新的文件名，例如 `my_controller.py`。
-3. 修改类名和 `name`。
+1. 复制模板 `torque_platform/controllers/new_controller_template.py`。
+2. 重命名，例如 `my_controller.py`。
+3. 修改模板内的类名和 `name`。
 4. 实现 `reset()` 和 `compute()`。
 5. 在 `config.py` 中设置：
 
@@ -137,6 +114,26 @@ CONTROLLER = "my_controller"
 - `safety`: 安全事件信息
 
 同时会生成同名 `_safety_events.txt`，用于记录限幅或停机事件。
+
+默认情况下，实验结束并保存 `.npz` 后会自动弹出本次实验的速览图，但不会保存图片。速览图包括跟踪表现、跟踪误差、控制力矩三类，每类图会按受控关节数量自动生成对应数量的子图。
+
+如需关闭自动绘图，可以在 `config.py` 中设置：
+
+```python
+PLOT_AFTER_RUN = False
+```
+
+也可以用离线绘图脚本查看已有实验结果：
+
+```powershell
+py torque_platform/plot_results.py
+```
+
+也可以指定数据文件并保存图片。默认会同时保存 PNG 和 PDF：
+
+```powershell
+py torque_platform/plot_results.py torque_platform/data/xxx.npz --save
+```
 
 
 ## 注意事项

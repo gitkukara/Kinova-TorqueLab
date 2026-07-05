@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Torque Platform: config.py",
+      "name": "实验：读取 config.py",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/torque_platform/main.py",
@@ -10,7 +10,7 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "Torque Platform: hold 5s",
+      "name": "实验：hold 保持 5 秒",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/torque_platform/main.py",
@@ -22,6 +22,51 @@
         "--duration",
         "5"
       ]
+    },
+    {
+      "name": "绘图：最新数据 (.npz)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/torque_platform/plot_results.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "绘图：指定数据 (.npz)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/torque_platform/plot_results.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "args": [
+        "${input:npzFile}"
+      ]
+    },
+    {
+      "name": "绘图：指定 .npz 并保存 PNG+PDF",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/torque_platform/plot_results.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "args": [
+        "${input:npzFile}",
+        "--save",
+        "--fmt",
+        "png",
+        "pdf",
+        "--outdir",
+        "figures",
+        "--no-show"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "npzFile",
+      "description": "输入 .npz 文件路径",
+      "type": "promptString",
+      "default": "torque_platform/data/pid_kinova_.npz"
     }
   ]
 }

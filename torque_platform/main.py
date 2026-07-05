@@ -24,6 +24,7 @@ from reference import SineReference
 from robot_interface import KinovaTorqueInterface
 from runner import ExperimentRunner
 from safety import SafetyConfig
+from plot_results import plot_results
 import utilities
 import config
 
@@ -204,6 +205,35 @@ def build_parser():
     parser.add_argument("--center-j6", type=float, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--data-dir", default=os.path.join(HERE, "data"))
     parser.add_argument("--log-every", type=int, default=config.LOG_EVERY)
+    parser.add_argument(
+        "--plot-after-run",
+        action=argparse.BooleanOptionalAction,
+        default=config.PLOT_AFTER_RUN,
+        help="Generate quick-look figures after saving experiment data.",
+    )
+    parser.add_argument(
+        "--plot-show",
+        action=argparse.BooleanOptionalAction,
+        default=config.PLOT_SHOW,
+        help="Show figures after the experiment. Saved figures are controlled separately.",
+    )
+    parser.add_argument(
+        "--plot-save",
+        action=argparse.BooleanOptionalAction,
+        default=config.PLOT_SAVE,
+        help="Save quick-look figures after the experiment.",
+    )
+    parser.add_argument(
+        "--plot-outdir",
+        default=config.PLOT_OUTDIR,
+        help="Directory for quick-look figures.",
+    )
+    parser.add_argument(
+        "--plot-fmt",
+        nargs="+",
+        default=config.PLOT_FORMATS,
+        help="Figure formats used when --plot-save is enabled.",
+    )
     return parser
 
 
@@ -259,7 +289,15 @@ def main():
             ok, log = runner.run()
 
     if ok:
-        runner.save(log, controller.name)
+        data_path = runner.save(log, controller.name)
+        if data_path and args.plot_after_run:
+            plot_results(
+                data_path,
+                save=args.plot_save,
+                outdir=args.plot_outdir,
+                formats=args.plot_fmt,
+                show=args.plot_show,
+            )
 
 
 if __name__ == "__main__":

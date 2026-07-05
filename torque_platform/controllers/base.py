@@ -23,6 +23,9 @@ class BaseController:
     def reset(self, q0: np.ndarray, dq0: Optional[np.ndarray] = None) -> None:
         """实验开始前初始化控制器内部状态。"""
 
+    def get_params(self) -> Dict[str, object]:
+        return {}
+
     def compute(
         self,
         t: float,

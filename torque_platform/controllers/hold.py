@@ -22,6 +22,13 @@ class HoldController(BaseController):
     def reset(self, q0, dq0=None):
         self.q_hold = np.asarray(q0, dtype=float).copy()
 
+    def get_params(self):
+        return {
+            "kp": self.kp,
+            "kd": self.kd,
+            "torque_limit": self.torque_limit,
+        }
+
     def compute(self, t, q, dq, xr, dxr, ddxr):
         error = self.q_hold - q
         torque = self.kp * error - self.kd * dq
