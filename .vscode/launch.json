@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "实验：按 config.py 运行",
+      "name": "Experiment: run config.py",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/torque_platform/main.py",
@@ -10,7 +10,7 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "实验：hold 保持 5 秒",
+      "name": "Experiment: hold 5s",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/torque_platform/main.py",
@@ -24,7 +24,7 @@
       ]
     },
     {
-      "name": "绘图：显示最新数据",
+      "name": "Plot: latest data",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/torque_platform/plot_results.py",
@@ -32,7 +32,7 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "绘图：显示指定数据",
+      "name": "Plot: selected data",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/torque_platform/plot_results.py",
@@ -43,7 +43,7 @@
       ]
     },
     {
-      "name": "绘图：保存指定数据 PNG+PDF",
+      "name": "Plot: save selected data PNG+PDF",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/torque_platform/plot_results.py",
@@ -64,7 +64,7 @@
   "inputs": [
     {
       "id": "npzFile",
-      "description": "输入 .npz 数据文件路径",
+      "description": "Enter .npz data file path",
       "type": "promptString",
       "default": "torque_platform/data/pid_kinova_.npz"
     }

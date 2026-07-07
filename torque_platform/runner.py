@@ -202,6 +202,11 @@ class ExperimentRunner:
                 print(cleanup_msg)
                 safety_stop = True
             self.last_safety_stop = safety_stop
+            if ok and not safety_stop:
+                print(
+                    f"[RUN][SUCCESS] Completed {self.duration:.3f} s "
+                    "without safety stop."
+                )
 
     def save(self, log, controller_name):
         data_dir = self.data_dir or os.path.join(os.getcwd(), "data")
@@ -213,12 +218,14 @@ class ExperimentRunner:
 
         if self.last_safety_stop:
             self._save_safety_events(safety_path, data_filename=None)
-            print(f"Safety stop: skipped .npz data save -> {safety_path}")
+            print(f"[RUN][STOPPED] Safety stop occurred. Skipped .npz data save.")
+            print(f"[RUN][SAVE] Saved safety log -> {safety_path}")
             return None
 
         if len(log.get("t", [])) == 0:
             self._save_safety_events(safety_path, data_filename=None)
-            print("No data to save.")
+            print("[RUN][WARN] No data to save.")
+            print(f"[RUN][SAVE] Saved safety log -> {safety_path}")
             return None
 
         arrays = {key: np.asarray(value) for key, value in log.items()}
@@ -279,7 +286,8 @@ class ExperimentRunner:
         np.savez(filename, **arrays)
 
         self._save_safety_events(safety_path, data_filename=os.path.basename(filename))
-        print(f"Saved -> {filename}")
+        print(f"[RUN][SAVE] Saved data -> {filename}")
+        print(f"[RUN][SAVE] Saved safety log -> {safety_path}")
         return filename
 
     def _save_safety_events(self, safety_path, data_filename=None):
