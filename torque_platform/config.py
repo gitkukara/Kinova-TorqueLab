@@ -11,7 +11,7 @@ PASSWORD = "password"
 
 
 # 实验设置
-CONTROLLER = "pid"  # pid / hold / brl_ppc
+CONTROLLER = "pid"  # pid / hold
 
 # Hold 控制器参数。用于短时间保持进入实验时的初始关节角。
 HOLD_KP = [8.0, 8.0]
@@ -21,6 +21,12 @@ DURATION = 20.0
 DT = 0.001
 TORQUE_LIMIT = 50.0
 LOG_EVERY = 1
+
+# Kortex cyclic Refresh/command timeout, in milliseconds.
+# Default is 3 ms for the 1 kHz low-level loop. Modify cautiously:
+# too small may cause false communication failures; too large may hide latency
+# and make the control loop block longer before the safety layer can react.
+CYCLIC_TIMEOUT_MS = 3
 
 # 实验结束后自动显示本次实验的速览图。
 # 默认只看一眼，不保存图片；需要正式出图时再单独运行 plot_results.py。
@@ -46,11 +52,17 @@ POSITION_BOUND = 0.45
 # 速度安全边界，单位 rad/s。若 abs(dq) 超过该值则停机。
 VELOCITY_BOUND = 1.0
 
+# 控制循环超时保护。若单个控制周期耗时连续超过该阈值，则停机。
+# 例如 DT=0.001 时，0.005 表示一轮超过 5 ms 算一次超时。
+LOOP_OVERRUN_LIMIT_S = 0.005
+LOOP_OVERRUN_MAX_CONSECUTIVE = 3
+
 # 通用安全停机开关。
 STOP_ON_POSITION_BOUND = True
 STOP_ON_VELOCITY_BOUND = True
 STOP_ON_NONFINITE_FEEDBACK = True
 STOP_ON_NONFINITE_TORQUE = True
+STOP_ON_LOOP_OVERRUN = True
 
 
 # 机器人位姿设置

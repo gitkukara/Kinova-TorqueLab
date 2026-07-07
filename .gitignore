@@ -15,5 +15,8 @@ figures/
 *.npz
 *_safety_events.txt
 
+# Local/private controllers
+torque_platform/controllers/brl_ppc.py
+
 .DS_Store
 Thumbs.db

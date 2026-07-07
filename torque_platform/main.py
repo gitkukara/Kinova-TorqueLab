@@ -120,6 +120,15 @@ def build_parser():
     parser.add_argument("--dt", type=float, default=config.DT)
     parser.add_argument("--torque-limit", type=float, default=config.TORQUE_LIMIT)
     parser.add_argument(
+        "--cyclic-timeout-ms",
+        type=int,
+        default=config.CYCLIC_TIMEOUT_MS,
+        help=(
+            "Kortex cyclic Refresh timeout in ms. Default is 3 ms; modify "
+            "cautiously because larger values can hide communication latency."
+        ),
+    )
+    parser.add_argument(
         "--safety-torque-limit",
         type=lambda s: parse_optional_float_list(s, "safety-torque-limit"),
         default=config.SAFETY_TORQUE_LIMIT,
@@ -144,6 +153,18 @@ def build_parser():
         help="Stop if abs(dq) exceeds this rad/s bound.",
     )
     parser.add_argument(
+        "--loop-overrun-limit-s",
+        type=float,
+        default=config.LOOP_OVERRUN_LIMIT_S,
+        help="Stop if a control loop takes longer than this many seconds.",
+    )
+    parser.add_argument(
+        "--loop-overrun-max-consecutive",
+        type=int,
+        default=config.LOOP_OVERRUN_MAX_CONSECUTIVE,
+        help="Number of consecutive loop overruns required before stopping.",
+    )
+    parser.add_argument(
         "--stop-on-position-bound",
         action=argparse.BooleanOptionalAction,
         default=config.STOP_ON_POSITION_BOUND,
@@ -166,6 +187,12 @@ def build_parser():
         action=argparse.BooleanOptionalAction,
         default=config.STOP_ON_NONFINITE_TORQUE,
         help="Enable or disable NaN/Inf torque safety stop.",
+    )
+    parser.add_argument(
+        "--stop-on-loop-overrun",
+        action=argparse.BooleanOptionalAction,
+        default=config.STOP_ON_LOOP_OVERRUN,
+        help="Enable or disable control-loop overrun safety stop.",
     )
     parser.add_argument(
         "--torque-joints",
@@ -251,10 +278,13 @@ def main():
         torque_rate_limit=args.torque_rate_limit,
         position_bound=args.position_bound,
         velocity_bound=args.velocity_bound,
+        loop_overrun_limit_s=args.loop_overrun_limit_s,
+        loop_overrun_max_consecutive=args.loop_overrun_max_consecutive,
         stop_on_position_bound=args.stop_on_position_bound,
         stop_on_velocity_bound=args.stop_on_velocity_bound,
         stop_on_nonfinite_feedback=args.stop_on_nonfinite_feedback,
         stop_on_nonfinite_torque=args.stop_on_nonfinite_torque,
+        stop_on_loop_overrun=args.stop_on_loop_overrun,
     )
     controller = create_registered_controller(
         args.controller,
@@ -274,6 +304,7 @@ def main():
                 router_real_time,
                 torque_joints=args.torque_joints,
                 start_angles_deg=args.start_angles_deg,
+                cyclic_timeout_ms=args.cyclic_timeout_ms,
             )
             runner = ExperimentRunner(
                 robot=robot,

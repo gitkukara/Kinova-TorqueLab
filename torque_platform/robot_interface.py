@@ -33,6 +33,7 @@ class KinovaTorqueInterface:
         torque_joints=(3, 5),
         start_angles_deg=(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -90.0),
         action_timeout=20.0,
+        cyclic_timeout_ms=3,
     ):
         self.base = BaseClient(router)
         self.base_cyclic = BaseCyclicClient(router_real_time)
@@ -41,6 +42,7 @@ class KinovaTorqueInterface:
         self.jid2idx = {jid: idx for idx, jid in enumerate(self.torque_joints)}
         self.start_angles_deg = list(start_angles_deg)
         self.action_timeout = float(action_timeout)
+        self.cyclic_timeout_ms = int(cyclic_timeout_ms)
 
         self.command = BaseCyclic_pb2.Command()
         self.command.frame_id = 0
@@ -50,7 +52,7 @@ class KinovaTorqueInterface:
         self.send_option = RouterClientSendOptions()
         self.send_option.andForget = False
         self.send_option.delay_ms = 0
-        self.send_option.timeout_ms = 3
+        self.send_option.timeout_ms = self.cyclic_timeout_ms
 
     def prepare(self):
         if not self.move_to_angles(self.start_angles_deg, "MoveToStart"):
