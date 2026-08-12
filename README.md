@@ -29,17 +29,40 @@ Kinova-TorqueLab/
 
 标记为 `[主要修改]` 的位置是日常使用入口。其余文件负责框架公共流程，通常不需要修改。
 
-## 环境
+## 环境依赖
 
-环境不需要严格锁定。建议使用 Python 3.10 或更高版本，并确保与机器人匹配的 Kinova Kortex Python API 能在当前环境中正常安装和导入。
+Windows 或 Linux 系统，需要提前安装：
 
-安装框架依赖：
+- Python 3.11 或相近版本
+- `numpy`
+- `matplotlib`（绘图时使用）
+- Kinova Kortex Python API
+
+Kinova Kortex Python API 需要从 Kinova 官方 Artifactory 下载与机械臂硬件和固件对应的 `.whl` 文件。例如 2.7.0 版本：
+
+```text
+https://artifactory.kinovaapps.com/ui/repos/tree/General/generic-public/kortex/API/2.7.0
+```
+
+下载后进入 wheel 所在目录并安装：
+
+Windows：
+
+```powershell
+python -m pip install .\kortex_api-2.7.0.post5-py3-none-any.whl
+```
+
+Linux：
+
+```bash
+python3 -m pip install ./kortex_api-2.7.0.post5-py3-none-any.whl
+```
+
+框架的其余依赖也可以通过以下命令安装：
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
-
-`numpy` 用于控制计算，`matplotlib` 用于实验后的自动绘图和离线绘图。依赖不锁定具体版本，由 `pip` 选择与当前 Python 兼容的版本。Kortex API 请根据机器人固件和 Python 环境安装对应的官方 wheel。
 
 ## 关键配置
 
