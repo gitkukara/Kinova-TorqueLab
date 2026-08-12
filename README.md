@@ -12,6 +12,7 @@ Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级关节力矩控制实�
 Kinova-TorqueLab/
 ├─ README.md
 ├─ requirements.txt
+├─ .vscode/launch.json       # VS Code 运行与绘图入口（可选）
 ├─ torque_platform/
 │  ├─ config.py              # [主要修改] 实验、安全与控制器参数
 │  ├─ controllers/           # [主要修改] 接入和调整控制算法
@@ -104,6 +105,8 @@ python -m torque_platform
 ```powershell
 python -m torque_platform --controller pid --duration 5
 ```
+
+也可以在 VS Code 的“运行和调试”中选择 `Experiment: run config.py`，直接按 `config.py` 启动实验。`launch.json` 内部仍然运行 `torque_platform/main.py`，与 `python -m torque_platform` 使用同一套配置和控制流程；它只是可选的便捷入口。绘图也可以使用其中的 `Plot` 配置。
 
 上机前请确认机器人状态、起始姿态、受控关节、轨迹范围和安全限制。首次运行新控制器时应缩短实验时间并使用保守参数。
 
