@@ -13,19 +13,22 @@ Kinova-TorqueLab/
 ├─ README.md
 ├─ requirements.txt
 ├─ torque_platform/
-│  ├─ config.py              # 实验与控制器配置
-│  ├─ main.py / __main__.py  # 命令行入口与组件装配
+│  ├─ config.py              # [主要修改] 实验、安全与控制器参数
+│  ├─ controllers/           # [主要修改] 接入和调整控制算法
+│  │  ├─ pid.py              # PID 跟踪基线
+│  │  ├─ hold.py             # 短时通路检查
+│  │  └─ new_controller_template.py  # 新控制器模板
+│  ├─ main.py / __main__.py  # 框架入口与组件装配
 │  ├─ runner.py              # 控制循环、记录与保存
 │  ├─ robot_interface.py     # Kortex 通信与模式切换
 │  ├─ safety.py              # 公共安全层
 │  ├─ validation.py          # 运行前配置检查
 │  ├─ reference.py           # 参考轨迹
-│  ├─ plot_results.py        # 实验结果绘图
-│  └─ controllers/           # 可替换控制器
+│  └─ plot_results.py        # 实验结果绘图
 └─ tests/                    # 自动测试
 ```
 
-日常实验主要修改 `config.py`；接入新算法主要修改 `controllers/`。其余文件负责框架公共流程。
+标记为 `[主要修改]` 的位置是日常使用入口。其余文件负责框架公共流程，通常不需要修改。
 
 ## 环境
 
