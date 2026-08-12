@@ -22,10 +22,9 @@ DT = 0.001
 TORQUE_LIMIT = 50.0
 LOG_EVERY = 1
 
-# Kortex cyclic Refresh/command timeout, in milliseconds.
-# Default is 3 ms for the 1 kHz low-level loop. Modify cautiously:
-# too small may cause false communication failures; too large may hide latency
-# and make the control loop block longer before the safety layer can react.
+# Kortex cyclic Refresh/command 超时时间，单位 ms。
+# 1 kHz 低层循环的默认值为 3 ms，请谨慎修改：设置过小可能误报通信失败；
+# 设置过大则可能掩盖通信延迟，并延长安全层响应前的循环阻塞时间。
 CYCLIC_TIMEOUT_MS = 3
 
 # 实验结束后自动显示本次实验的速览图。

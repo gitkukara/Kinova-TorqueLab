@@ -56,7 +56,7 @@ class KinovaTorqueInterface:
 
     def prepare(self):
         if not self.move_to_angles(self.start_angles_deg, "MoveToStart"):
-            raise RuntimeError("Cannot reach start position")
+            raise RuntimeError("无法到达实验起始姿态")
 
         feedback = self.base_cyclic.RefreshFeedback()
         self.actuator_count = len(feedback.actuators)
@@ -76,7 +76,7 @@ class KinovaTorqueInterface:
         current_mode = self.base.GetServoingMode()
         if current_mode.servoing_mode != Base_pb2.LOW_LEVEL_SERVOING:
             mode_name = Base_pb2.ServoingMode.Name(current_mode.servoing_mode)
-            raise RuntimeError(f"Failed to enter LOW_LEVEL_SERVOING: {mode_name}")
+            raise RuntimeError(f"无法进入 LOW_LEVEL_SERVOING 模式：{mode_name}")
 
         for jid in self.torque_joints:
             self.set_joint_mode(jid, "TORQUE")
@@ -118,7 +118,7 @@ class KinovaTorqueInterface:
             time.sleep(dt)
 
     def cleanup(self, return_home=True):
-        print("\n--- Cleanup ---")
+        print("\n--- 实验结束清理 ---")
         self.zero_torque(duration=0.2)
         for jid in self.torque_joints:
             self.set_joint_mode(jid, "POSITION")
@@ -130,7 +130,7 @@ class KinovaTorqueInterface:
             self.base.ClearFaults()
             time.sleep(1.0)
         except Exception as exc:
-            print(f"ClearFaults ignored: {exc}")
+            print(f"ClearFaults 失败，已忽略：{exc}")
 
         if return_home:
             svm = Base_pb2.ServoingModeInformation()
@@ -156,7 +156,7 @@ class KinovaTorqueInterface:
 
         actuator_count = self.base.GetActuatorCount().count
         if actuator_count != len(angles_deg):
-            print(f"Actuator count mismatch: {actuator_count} != {len(angles_deg)}")
+            print(f"执行器数量不一致：{actuator_count} != {len(angles_deg)}")
             return False
 
         event = threading.Event()
@@ -183,7 +183,7 @@ class KinovaTorqueInterface:
         msg = ActuatorConfig_pb2.ControlModeInformation()
         msg.control_mode = ActuatorConfig_pb2.ControlMode.Value(mode)
         self.actuator_config.SetControlMode(msg, joint_id + 1)
-        print(f"Joint {joint_id + 1} -> {mode}")
+        print(f"关节 {joint_id + 1} -> {mode}")
 
     def increment_frame_id(self):
         self.command.frame_id = (self.command.frame_id + 1) % 65536
@@ -193,7 +193,7 @@ class KinovaTorqueInterface:
     def _check_for_end_or_abort(self, event):
         def check(notification, event=event):
             name = Base_pb2.ActionEvent.Name(notification.action_event)
-            print("EVENT:", name)
+            print("动作事件：", name)
             if notification.action_event in (Base_pb2.ACTION_END, Base_pb2.ACTION_ABORT):
                 event.set()
 

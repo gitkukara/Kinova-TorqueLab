@@ -61,7 +61,7 @@ class ExperimentRunner:
         safety_stop = False
         self.last_safety_stop = False
         try:
-            print("Warmup: zero torque for 200 ms")
+            print("预热：下发 200 ms 零力矩")
             self.robot.warmup_zero_torque(duration=0.2, dt=self.dt)
 
             start_time = time.perf_counter()
@@ -80,7 +80,7 @@ class ExperimentRunner:
                     feedback, (q, dq) = self.robot.refresh()
                 except Exception as exc:
                     safety_msg = self.safety.stop(
-                        t, f"communication refresh failed: {exc}"
+                        t, f"通信刷新失败：{exc}"
                     )
                     print(safety_msg)
                     safety_stop = True
@@ -198,14 +198,14 @@ class ExperimentRunner:
                 cleanup_t = 0.0
                 if "start_time" in locals():
                     cleanup_t = time.perf_counter() - start_time
-                cleanup_msg = self.safety.warning(cleanup_t, f"cleanup failed: {exc}")
+                cleanup_msg = self.safety.warning(cleanup_t, f"清理失败：{exc}")
                 print(cleanup_msg)
                 safety_stop = True
             self.last_safety_stop = safety_stop
             if ok and not safety_stop:
                 print(
-                    f"[RUN][SUCCESS] Completed {self.duration:.3f} s "
-                    "without safety stop."
+                    f"[RUN][成功] 已完成 {self.duration:.3f} s 实验，"
+                    "未触发安全停机。"
                 )
 
     def save(self, log, controller_name):
@@ -218,23 +218,23 @@ class ExperimentRunner:
 
         if self.last_safety_stop:
             self._save_safety_events(safety_path, data_filename=None)
-            print(f"[RUN][STOPPED] Safety stop occurred. Skipped .npz data save.")
-            print(f"[RUN][SAVE] Saved safety log -> {safety_path}")
+            print("[RUN][已停止] 已触发安全停机，跳过 .npz 数据保存。")
+            print(f"[RUN][保存] 安全日志已保存 -> {safety_path}")
             return None
 
         if len(log.get("t", [])) == 0:
             self._save_safety_events(safety_path, data_filename=None)
-            print("[RUN][WARN] No data to save.")
-            print(f"[RUN][SAVE] Saved safety log -> {safety_path}")
+            print("[RUN][警告] 没有可保存的实验数据。")
+            print(f"[RUN][保存] 安全日志已保存 -> {safety_path}")
             return None
 
-        # Per-sample schema written by run():
-        #   t: elapsed time in seconds
-        #   q/dq: measured joint position and velocity
-        #   xr/dxr/ddxr: reference position, velocity, and acceleration
-        #   u_raw/u: controller output before and after the safety layer
-        #   safety: safety event associated with the sample
-        # Controller-specific diagnostic arrays are added from ControlResult.log.
+        # run() 写入的逐采样数据：
+        #   t：实验已经过时间，单位 s。
+        #   q/dq：实测关节位置和速度。
+        #   xr/dxr/ddxr：参考位置、速度和加速度。
+        #   u_raw/u：安全层处理前后的控制器力矩输出。
+        #   safety：当前采样点对应的安全事件。
+        # 控制器专用诊断量由 ControlResult.log 追加。
         arrays = {key: np.asarray(value) for key, value in log.items()}
         arrays["p_duration"] = np.asarray(self.duration)
         arrays["p_dt"] = np.asarray(self.dt)
@@ -265,7 +265,7 @@ class ExperimentRunner:
         arrays["p_stop_on_loop_overrun"] = np.asarray(
             self.safety_config.stop_on_loop_overrun
         )
-        # p_* entries below are configuration snapshots saved with the run.
+        # 以下 p_* 字段是随实验数据一起保存的配置快照。
         arrays["p_controller"] = np.asarray(controller_name)
 
         _add_param_arrays(
@@ -294,19 +294,19 @@ class ExperimentRunner:
         np.savez(filename, **arrays)
 
         self._save_safety_events(safety_path, data_filename=os.path.basename(filename))
-        print(f"[RUN][SAVE] Saved data -> {filename}")
-        print(f"[RUN][SAVE] Saved safety log -> {safety_path}")
+        print(f"[RUN][保存] 实验数据已保存 -> {filename}")
+        print(f"[RUN][保存] 安全日志已保存 -> {safety_path}")
         return filename
 
     def _save_safety_events(self, safety_path, data_filename=None):
         with open(safety_path, "w", encoding="utf-8") as f:
-            f.write("# Safety event log\n")
+            f.write("# 安全事件日志\n")
             if data_filename is None:
-                f.write("# data_file: not saved\n")
+                f.write("# 数据文件：未保存\n")
             else:
-                f.write(f"# data_file: {data_filename}\n")
+                f.write(f"# 数据文件：{data_filename}\n")
             if self.safety.event_history:
                 for t, message in self.safety.event_history:
                     f.write(f"{t:.6f}: {message}\n")
             else:
-                f.write("# no safety events recorded\n")
+                f.write("# 未记录到安全事件\n")

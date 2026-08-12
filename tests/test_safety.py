@@ -24,7 +24,7 @@ class SafetyMonitorTests(unittest.TestCase):
     def test_invalid_limit_fails_closed(self):
         monitor = SafetyMonitor(SafetyConfig(torque_limit=float("nan")))
         monitor.reset(np.zeros(2))
-        with self.assertRaisesRegex(ValueError, "finite"):
+        with self.assertRaisesRegex(ValueError, "有限"):
             monitor.limit_torque(0.0, [1.0, -1.0])
 
     def test_position_bound_stops(self):

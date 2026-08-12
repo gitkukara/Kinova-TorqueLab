@@ -1,4 +1,4 @@
-"""Module entry point for ``python -m torque_platform``."""
+"""``python -m torque_platform`` 的模块运行入口。"""
 
 from .main import main
 

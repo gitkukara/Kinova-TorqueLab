@@ -23,12 +23,12 @@ Kinova-TorqueLab/
 │  ├─ runner.py              # 控制循环、记录与保存
 │  ├─ robot_interface.py     # Kortex 通信与模式切换
 │  ├─ safety.py              # 公共安全层
-│  ├─ validation.py          # 运行前配置检查
-│  ├─ reference.py           # 参考轨迹
-│  └─ plot_results.py        # 实验结果绘图
+│  ├─ validation.py          # 运行前配置合法性检查（通常无需修改）
+│  ├─ reference.py           # [按需修改] 参考轨迹生成
+│  └─ plot_results.py        # [按需修改] 绘图内容与样式
 ```
 
-标记为 `[主要修改]` 的位置是日常使用入口。其余文件负责框架公共流程，通常不需要修改。
+标记为 `[主要修改]` 的位置是日常使用入口。需要更换默认轨迹或图表风格时，再修改标记为 `[按需修改]` 的文件。其余文件负责框架公共流程，通常不需要修改。
 
 ## 环境依赖
 
@@ -138,6 +138,8 @@ class MyController(BaseController):
 ## 数据与绘图
 
 实验完成后，运行器会保存 `.npz` 数据和对应的安全事件日志。数据结构及字段含义记录在 `runner.py` 的写入代码旁。
+
+默认参考轨迹由 `reference.py` 生成；需要使用其他轨迹时，可替换轨迹类，但应保持 `sample()` 返回参考位置、速度和加速度。默认图表的曲线、标题和样式集中在 `plot_results.py` 中，可按实验需求修改。
 
 显示最新实验结果：
 

@@ -1,4 +1,4 @@
-"""可选用力矩控制算法的控制器注册表"""
+"""自动发现并创建可用力矩控制算法的控制器注册表。"""
 
 import importlib
 import inspect
@@ -57,7 +57,7 @@ def discover_controllers():
         for name, classes in sorted(duplicates.items()):
             locations = ", ".join(f"{cls.__module__}.{cls.__name__}" for cls in classes)
             details.append(f"{name}: {locations}")
-        raise RuntimeError("Duplicate controller names found: " + "; ".join(details))
+        raise RuntimeError("发现重复的控制器名称：" + "; ".join(details))
 
     return controllers
 
@@ -79,11 +79,11 @@ def get_controller_class(name):
         return controllers[name]
     except KeyError as exc:
         choices = ", ".join(sorted(controllers))
-        raise ValueError(f"Unknown controller '{name}'. Available: {choices}") from exc
+        raise ValueError(f"未知控制器 '{name}'。可用控制器：{choices}") from exc
 
 
 def controller_kwargs(controller_cls, config_module, prefix, extra=None):
-    """Read matching controller constructor kwargs from config."""
+    """从配置模块读取与控制器构造函数参数同名的配置项。"""
     extra = dict(extra or {})
     signature = inspect.signature(controller_cls.__init__)
     accepted = {

@@ -1,6 +1,7 @@
 """参考轨迹生成。
 
-当前提供两关节正弦轨迹，内部计算统一使用弧度。
+默认提供可用于任意受控关节数量的正弦轨迹，内部计算统一使用弧度。
+如需其他轨迹，可修改本文件或新建轨迹类，并保持 ``sample()`` 的返回格式不变。
 """
 
 import math
@@ -9,7 +10,7 @@ import numpy as np
 
 
 class SineReference:
-    """两关节正弦参考轨迹。"""
+    """按关节分别设置中心、幅值和周期的正弦参考轨迹。"""
 
     def __init__(self, center, amplitude_deg=(15.0, 15.0), period_s=(5.0, 5.0)):
         self.center = np.asarray(center, dtype=float)
@@ -18,6 +19,8 @@ class SineReference:
         self.omega = 2.0 * math.pi / self.period_s
 
     def sample(self, t, phase_lead_s=None):
+        """返回时刻 ``t`` 的参考位置、速度和加速度，单位均采用 SI 制。"""
+
         if phase_lead_s is None:
             phase_lead_s = 0.0
         t_eff = t + np.asarray(phase_lead_s, dtype=float)

@@ -49,10 +49,10 @@ class ValidationTests(unittest.TestCase):
             validate_experiment_args(args)
 
         message = str(caught.exception)
-        self.assertIn("placeholder", message)
-        self.assertIn("duplicates", message)
+        self.assertIn("占位", message)
+        self.assertIn("重复", message)
         self.assertIn("reference_period_s", message)
-        self.assertIn("finite", message)
+        self.assertIn("有限", message)
 
     def test_rejects_wrong_per_joint_limit_length(self):
         with self.assertRaisesRegex(ValueError, "safety_torque_limit"):

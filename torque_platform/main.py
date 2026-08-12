@@ -35,7 +35,7 @@ def parse_float_list(text, expected_len=None, name="value"):
     values = [float(item.strip()) for item in text.split(",") if item.strip()]
     if expected_len is not None and len(values) != expected_len:
         raise argparse.ArgumentTypeError(
-            f"{name} must contain {expected_len} comma-separated numbers"
+            f"{name} 必须包含 {expected_len} 个用逗号分隔的数值"
         )
     return values
 
@@ -44,7 +44,7 @@ def parse_int_list(text, expected_len=None, name="value"):
     values = [int(item.strip()) for item in text.split(",") if item.strip()]
     if expected_len is not None and len(values) != expected_len:
         raise argparse.ArgumentTypeError(
-            f"{name} must contain {expected_len} comma-separated integers"
+            f"{name} 必须包含 {expected_len} 个用逗号分隔的整数"
         )
     return values
 
@@ -61,8 +61,8 @@ def parse_optional_float_list(text, name="value"):
 def ensure_len(values, expected_len, name):
     if len(values) != expected_len:
         raise ValueError(
-            f"{name} must contain {expected_len} comma-separated values "
-            f"to match torque_joints"
+            f"{name} 必须包含 {expected_len} 个用逗号分隔的值，"
+            f"以便与 torque_joints 对应"
         )
     return values
 
@@ -83,7 +83,7 @@ def apply_legacy_reference_overrides(args):
     if any(value is not None for value in legacy_values):
         for values in (center, amplitude, period):
             if len(values) < 2:
-                raise ValueError("Legacy J4/J6 reference overrides require two values")
+                raise ValueError("旧版 J4/J6 参考轨迹覆盖参数要求配置两个关节值")
         if args.amp_j4_deg is not None:
             amplitude[0] = args.amp_j4_deg
         if args.amp_j6_deg is not None:
@@ -106,10 +106,10 @@ def apply_legacy_reference_overrides(args):
 
 
 def print_available_controllers():
-    print("Available controllers:")
+    print("可用控制器：")
     for name, controller_cls in sorted(controller_classes().items()):
         own_doc = controller_cls.__dict__.get("__doc__")
-        doc = inspect.cleandoc(own_doc) if own_doc else "No description available."
+        doc = inspect.cleandoc(own_doc) if own_doc else "暂无说明。"
         summary = doc.splitlines()[0]
         print(f"  {name:<16} {summary}")
 
@@ -128,141 +128,154 @@ def print_config_summary(args, safety_torque_limit):
     )
     if args.controller == "hold":
         print(
-            "[RUN][NOTICE] hold is a low-gain PD commissioning controller. "
-            "It has no gravity compensation and may drift under load."
+            "[RUN][提示] hold 是低增益 PD 调试控制器，不含重力补偿，"
+            "机械臂在负载下可能缓慢下沉。"
         )
 
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Kinova Gen3 reusable torque-control experiment platform."
+        description="Kinova Gen3 可复用力矩控制实验平台。"
     )
-    parser.add_argument("--ip", type=str, default=config.IP)
-    parser.add_argument("-u", "--username", type=str, default=config.USERNAME)
-    parser.add_argument("-p", "--password", type=str, default=config.PASSWORD)
+    parser.add_argument("--ip", type=str, default=config.IP, help="机械臂 IP 地址。")
+    parser.add_argument(
+        "-u", "--username", type=str, default=config.USERNAME, help="登录用户名。"
+    )
+    parser.add_argument(
+        "-p", "--password", type=str, default=config.PASSWORD, help="登录密码。"
+    )
     parser.add_argument(
         "--list-controllers",
         action="store_true",
-        help="List discovered controllers and exit without connecting to the robot.",
+        help="列出自动发现的控制器后退出，不连接机械臂。",
     )
     parser.add_argument(
         "--check-config",
         action="store_true",
-        help="Validate configuration and controller construction, then exit.",
+        help="检查配置并尝试创建控制器，然后退出，不连接机械臂。",
     )
     parser.add_argument(
         "--controller",
         choices=available_controller_names(),
         default=config.CONTROLLER,
-        help="Control algorithm to run.",
+        help="本次实验使用的控制算法。",
     )
-    parser.add_argument("--duration", type=float, default=config.DURATION)
-    parser.add_argument("--dt", type=float, default=config.DT)
-    parser.add_argument("--torque-limit", type=float, default=config.TORQUE_LIMIT)
+    parser.add_argument(
+        "--duration", type=float, default=config.DURATION, help="实验时长，单位 s。"
+    )
+    parser.add_argument(
+        "--dt", type=float, default=config.DT, help="目标控制周期，单位 s。"
+    )
+    parser.add_argument(
+        "--torque-limit",
+        type=float,
+        default=config.TORQUE_LIMIT,
+        help="控制器使用的力矩限幅，单位 N*m。",
+    )
     parser.add_argument(
         "--cyclic-timeout-ms",
         type=int,
         default=config.CYCLIC_TIMEOUT_MS,
         help=(
-            "Kortex cyclic Refresh timeout in ms. Default is 3 ms; modify "
-            "cautiously because larger values can hide communication latency."
+            "Kortex cyclic Refresh 的超时时间，单位 ms。默认值为 3 ms；"
+            "增大该值可能掩盖通信延迟，请谨慎修改。"
         ),
     )
     parser.add_argument(
         "--safety-torque-limit",
         type=lambda s: parse_optional_float_list(s, "safety-torque-limit"),
         default=config.SAFETY_TORQUE_LIMIT,
-        help="Final torque clamp before sending commands. None uses --torque-limit.",
+        help="指令下发前的最终力矩限幅；设为 none 时使用 --torque-limit。",
     )
     parser.add_argument(
         "--torque-rate-limit",
         type=lambda s: parse_optional_float_list(s, "torque-rate-limit"),
         default=config.TORQUE_RATE_LIMIT,
-        help="Maximum torque change per loop in N*m. Use 'none' to disable.",
+        help="每个控制周期允许的最大力矩变化，单位 N*m；使用 none 可关闭。",
     )
     parser.add_argument(
         "--position-bound",
         type=lambda s: parse_optional_float_list(s, "position-bound"),
         default=config.POSITION_BOUND,
-        help="Stop if abs(q - q_start) exceeds this radian bound.",
+        help="当 abs(q - q_start) 超过此边界时停机，单位 rad。",
     )
     parser.add_argument(
         "--velocity-bound",
         type=lambda s: parse_optional_float_list(s, "velocity-bound"),
         default=config.VELOCITY_BOUND,
-        help="Stop if abs(dq) exceeds this rad/s bound.",
+        help="当 abs(dq) 超过此边界时停机，单位 rad/s。",
     )
     parser.add_argument(
         "--loop-overrun-limit-s",
         type=float,
         default=config.LOOP_OVERRUN_LIMIT_S,
-        help="Stop if a control loop takes longer than this many seconds.",
+        help="单个控制周期超过此时长时记为超时，单位 s。",
     )
     parser.add_argument(
         "--loop-overrun-max-consecutive",
         type=int,
         default=config.LOOP_OVERRUN_MAX_CONSECUTIVE,
-        help="Number of consecutive loop overruns required before stopping.",
+        help="触发停机所需的连续控制周期超时次数。",
     )
     parser.add_argument(
         "--stop-on-position-bound",
         action=argparse.BooleanOptionalAction,
         default=config.STOP_ON_POSITION_BOUND,
-        help="Enable or disable position-bound safety stop.",
+        help="启用或关闭位置越界停机。",
     )
     parser.add_argument(
         "--stop-on-velocity-bound",
         action=argparse.BooleanOptionalAction,
         default=config.STOP_ON_VELOCITY_BOUND,
-        help="Enable or disable velocity-bound safety stop.",
+        help="启用或关闭速度越界停机。",
     )
     parser.add_argument(
         "--stop-on-nonfinite-feedback",
         action=argparse.BooleanOptionalAction,
         default=config.STOP_ON_NONFINITE_FEEDBACK,
-        help="Enable or disable NaN/Inf feedback safety stop.",
+        help="启用或关闭反馈出现 NaN/Inf 时的停机保护。",
     )
     parser.add_argument(
         "--stop-on-nonfinite-torque",
         action=argparse.BooleanOptionalAction,
         default=config.STOP_ON_NONFINITE_TORQUE,
-        help="Enable or disable NaN/Inf torque safety stop.",
+        help="启用或关闭力矩指令出现 NaN/Inf 时的停机保护。",
     )
     parser.add_argument(
         "--stop-on-loop-overrun",
         action=argparse.BooleanOptionalAction,
         default=config.STOP_ON_LOOP_OVERRUN,
-        help="Enable or disable control-loop overrun safety stop.",
+        help="启用或关闭控制周期连续超时停机。",
     )
     parser.add_argument(
         "--torque-joints",
         type=lambda s: parse_int_list(s, name="torque-joints"),
         default=config.TORQUE_JOINTS,
-        help="Actuator indexes for torque control. Defaults to 3,5 for J4/J6.",
+        help="进入力矩控制的执行器索引；默认 3,5 对应 J4/J6。",
     )
     parser.add_argument(
         "--start-angles-deg",
         type=lambda s: parse_float_list(s, 7, "start-angles-deg"),
         default=config.START_ANGLES_DEG,
-        help="Seven start joint angles in degrees, e.g. 0,0,0,0,0,0,-90.",
+        help="7 个起始关节角，单位 deg，例如 0,0,0,0,0,0,-90。",
     )
     parser.add_argument(
         "--reference-center-rad",
         type=lambda s: parse_float_list(s, name="reference-center-rad"),
         default=config.REFERENCE_CENTER_RAD,
-        help="Reference centers in rad, one value per torque joint.",
+        help="参考轨迹中心，单位 rad，每个受控关节填写一个值。",
     )
     parser.add_argument(
         "--reference-amplitude-deg",
         type=lambda s: parse_float_list(s, name="reference-amplitude-deg"),
         default=config.REFERENCE_AMPLITUDE_DEG,
-        help="Reference sine amplitudes in deg, one value per torque joint.",
+        help="正弦参考轨迹幅值，单位 deg，每个受控关节填写一个值。",
     )
     parser.add_argument(
         "--reference-period-s",
         type=lambda s: parse_float_list(s, name="reference-period-s"),
         default=config.REFERENCE_PERIOD_S,
-        help="Reference sine periods in seconds, one value per torque joint.",
+        help="正弦参考轨迹周期，单位 s，每个受控关节填写一个值。",
     )
     parser.add_argument("--amp-j4-deg", type=float, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--amp-j6-deg", type=float, default=None, help=argparse.SUPPRESS)
@@ -270,36 +283,45 @@ def build_parser():
     parser.add_argument("--period-j6", type=float, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--center-j4", type=float, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--center-j6", type=float, default=None, help=argparse.SUPPRESS)
-    parser.add_argument("--data-dir", default=os.path.join(HERE, "data"))
-    parser.add_argument("--log-every", type=int, default=config.LOG_EVERY)
+    parser.add_argument(
+        "--data-dir",
+        default=os.path.join(HERE, "data"),
+        help="实验数据输出目录。",
+    )
+    parser.add_argument(
+        "--log-every",
+        type=int,
+        default=config.LOG_EVERY,
+        help="每隔多少个控制周期记录一次数据。",
+    )
     parser.add_argument(
         "--plot-after-run",
         action=argparse.BooleanOptionalAction,
         default=config.PLOT_AFTER_RUN,
-        help="Generate quick-look figures after saving experiment data.",
+        help="保存实验数据后生成快速预览图。",
     )
     parser.add_argument(
         "--plot-show",
         action=argparse.BooleanOptionalAction,
         default=config.PLOT_SHOW,
-        help="Show figures after the experiment. Saved figures are controlled separately.",
+        help="实验后显示图窗；是否保存图片由 --plot-save 单独控制。",
     )
     parser.add_argument(
         "--plot-save",
         action=argparse.BooleanOptionalAction,
         default=config.PLOT_SAVE,
-        help="Save quick-look figures after the experiment.",
+        help="实验后保存快速预览图。",
     )
     parser.add_argument(
         "--plot-outdir",
         default=config.PLOT_OUTDIR,
-        help="Directory for quick-look figures.",
+        help="快速预览图的输出目录。",
     )
     parser.add_argument(
         "--plot-fmt",
         nargs="+",
         default=config.PLOT_FORMATS,
-        help="Figure formats used when --plot-save is enabled.",
+        help="启用 --plot-save 时使用的图片格式。",
     )
     return parser
 
@@ -350,15 +372,14 @@ def main():
     print_config_summary(args, safety_torque_limit)
     if args.check_config:
         print(
-            f"[CHECK][OK] Configuration is valid and controller "
-            f"'{controller.name}' was created successfully."
+            f"[CHECK][通过] 配置有效，控制器 '{controller.name}' 已成功创建。"
         )
         return
 
-    print(f"[RUN][CONNECT] Opening TCP/UDP sessions to {args.ip}...")
+    print(f"[RUN][连接] 正在连接 {args.ip} 的 TCP/UDP 会话...")
     with utilities.DeviceConnection.createTcpConnection(args) as router:
         with utilities.DeviceConnection.createUdpConnection(args) as router_real_time:
-            print("[RUN][CONNECT] TCP/UDP sessions ready.")
+            print("[RUN][连接] TCP/UDP 会话已就绪。")
             robot = KinovaTorqueInterface(
                 router,
                 router_real_time,
@@ -387,9 +408,9 @@ def main():
             except ImportError as exc:
                 if exc.name == "matplotlib":
                     print(
-                        "[RUN][WARN] Plotting skipped because matplotlib is not "
-                        "installed. Install it with 'python -m pip install matplotlib' "
-                        "or set PLOT_AFTER_RUN = False."
+                        "[RUN][警告] 未安装 matplotlib，已跳过绘图。可运行 "
+                        "'python -m pip install matplotlib' 安装，或将 "
+                        "PLOT_AFTER_RUN 设为 False。"
                     )
                     return
                 raise

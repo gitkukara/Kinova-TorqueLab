@@ -9,7 +9,7 @@ from .base import BaseController, ControlResult
 
 
 class PIDController(BaseController):
-    """PID trajectory-tracking baseline with optional reference phase lead."""
+    """支持参考轨迹相位提前的 PID 轨迹跟踪基线。"""
 
     name = "pid"
 

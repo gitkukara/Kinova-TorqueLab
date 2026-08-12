@@ -6,7 +6,8 @@ from .base import BaseController, ControlResult
 
 
 class HoldController(BaseController):
-    """Low-gain PD commissioning controller without gravity compensation."""
+    """不含重力补偿的低增益 PD 调试控制器，负载下可能缓慢下沉。"""
+
     name = "hold"
 
     def __init__(
