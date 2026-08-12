@@ -6,6 +6,27 @@ Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级关节力矩控制实�
 
 > `hold` 没有重力补偿，机械臂可能在负载下缓慢下沉。它只用于短时间检查通信、模式切换和数据通路，不应被当作可靠的位置保持控制器。
 
+## 项目结构
+
+```text
+Kinova-TorqueLab/
+├─ README.md
+├─ requirements.txt
+├─ torque_platform/
+│  ├─ config.py              # 实验与控制器配置
+│  ├─ main.py / __main__.py  # 命令行入口与组件装配
+│  ├─ runner.py              # 控制循环、记录与保存
+│  ├─ robot_interface.py     # Kortex 通信与模式切换
+│  ├─ safety.py              # 公共安全层
+│  ├─ validation.py          # 运行前配置检查
+│  ├─ reference.py           # 参考轨迹
+│  ├─ plot_results.py        # 实验结果绘图
+│  └─ controllers/           # 可替换控制器
+└─ tests/                    # 自动测试
+```
+
+日常实验主要修改 `config.py`；接入新算法主要修改 `controllers/`。其余文件负责框架公共流程。
+
 ## 环境
 
 环境不需要严格锁定。建议使用 Python 3.10 或更高版本，并确保与机器人匹配的 Kinova Kortex Python API 能在当前环境中正常安装和导入。
