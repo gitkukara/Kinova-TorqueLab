@@ -48,10 +48,15 @@ def _limit_array(value, size, name, allow_none=False):
         return None
     array = np.asarray(value, dtype=float)
     if array.ndim == 0:
-        return np.full(size, float(array), dtype=float)
-    array = array.reshape(-1)
+        array = np.full(size, float(array), dtype=float)
+    else:
+        array = array.reshape(-1)
     if array.size != size:
         raise ValueError(f"{name} must be scalar or contain {size} values")
+    if not np.all(np.isfinite(array)):
+        raise ValueError(f"{name} must contain only finite values")
+    if np.any(array <= 0.0):
+        raise ValueError(f"{name} values must be greater than zero")
     return array
 
 

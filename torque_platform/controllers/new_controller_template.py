@@ -10,7 +10,7 @@ from .base import BaseController, ControlResult
 
 
 class NewController(BaseController):
-    """单文件控制器示例。"""
+    """Example controller; replace this with its purpose and limitations."""
 
     name = "new_controller"
     supports_realtime = True
@@ -21,11 +21,12 @@ class NewController(BaseController):
         self.torque_limit = float(torque_limit)
 
     def reset(self, q0, dq0=None):
-        # 放 Matlab 主循环前的初始化内容。
+        # Initialize all per-run state here. Do not reuse state across runs.
         self.state = {}
 
     def compute(self, t, q, dq, xr, dxr, ddxr):
-        # 只迁移控制律计算；q、dq 来自实机反馈。
+        # Inputs use SI units: rad, rad/s, rad/s^2. Output uses N*m and must
+        # have the same length as q and TORQUE_JOINTS.
         error = xr - q
         torque = np.zeros_like(q)
         torque = np.clip(torque, -self.torque_limit, self.torque_limit)

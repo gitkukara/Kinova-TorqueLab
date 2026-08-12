@@ -4,6 +4,7 @@
 """
 
 import argparse
+import inspect
 import os
 import sys
 
@@ -18,12 +19,14 @@ for path in (HERE, API_ROOT, MY_CODE):
 
 from controllers.registry import (
     available_controller_names,
+    controller_classes,
     create_controller as create_registered_controller,
 )
 from reference import SineReference
 from robot_interface import KinovaTorqueInterface
 from runner import ExperimentRunner
 from safety import SafetyConfig
+from validation import validate_experiment_args
 from plot_results import plot_results
 import utilities
 import config
@@ -103,6 +106,34 @@ def apply_legacy_reference_overrides(args):
     args.reference_period_s = ensure_len(period, joint_count, "reference-period-s")
 
 
+def print_available_controllers():
+    print("Available controllers:")
+    for name, controller_cls in sorted(controller_classes().items()):
+        own_doc = controller_cls.__dict__.get("__doc__")
+        doc = inspect.cleandoc(own_doc) if own_doc else "No description available."
+        summary = doc.splitlines()[0]
+        print(f"  {name:<16} {summary}")
+
+
+def print_config_summary(args, safety_torque_limit):
+    print(
+        f"[RUN][CONFIG] controller={args.controller}, ip={args.ip}, "
+        f"torque_joints={args.torque_joints}, duration={args.duration}s, "
+        f"dt={args.dt}s"
+    )
+    print(
+        f"[RUN][SAFETY] torque_limit={safety_torque_limit}, "
+        f"torque_rate_limit={args.torque_rate_limit}, "
+        f"position_bound={args.position_bound}, "
+        f"velocity_bound={args.velocity_bound}"
+    )
+    if args.controller == "hold":
+        print(
+            "[RUN][NOTICE] hold is a low-gain PD commissioning controller. "
+            "It has no gravity compensation and may drift under load."
+        )
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         description="Kinova Gen3 reusable torque-control experiment platform."
@@ -110,6 +141,16 @@ def build_parser():
     parser.add_argument("--ip", type=str, default=config.IP)
     parser.add_argument("-u", "--username", type=str, default=config.USERNAME)
     parser.add_argument("-p", "--password", type=str, default=config.PASSWORD)
+    parser.add_argument(
+        "--list-controllers",
+        action="store_true",
+        help="List discovered controllers and exit without connecting to the robot.",
+    )
+    parser.add_argument(
+        "--check-config",
+        action="store_true",
+        help="Validate configuration and controller construction, then exit.",
+    )
     parser.add_argument(
         "--controller",
         choices=available_controller_names(),
@@ -266,8 +307,18 @@ def build_parser():
 
 
 def main():
-    args = build_parser().parse_args()
-    apply_legacy_reference_overrides(args)
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.list_controllers:
+        print_available_controllers()
+        return
+
+    try:
+        apply_legacy_reference_overrides(args)
+        validate_experiment_args(args)
+    except (TypeError, ValueError) as exc:
+        parser.error(str(exc))
+
     safety_torque_limit = (
         args.torque_limit
         if args.safety_torque_limit is None
@@ -297,8 +348,18 @@ def main():
         period_s=args.reference_period_s,
     )
 
+    print_config_summary(args, safety_torque_limit)
+    if args.check_config:
+        print(
+            f"[CHECK][OK] Configuration is valid and controller "
+            f"'{controller.name}' was created successfully."
+        )
+        return
+
+    print(f"[RUN][CONNECT] Opening TCP/UDP sessions to {args.ip}...")
     with utilities.DeviceConnection.createTcpConnection(args) as router:
         with utilities.DeviceConnection.createUdpConnection(args) as router_real_time:
+            print("[RUN][CONNECT] TCP/UDP sessions ready.")
             robot = KinovaTorqueInterface(
                 router,
                 router_real_time,

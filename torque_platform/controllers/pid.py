@@ -9,6 +9,8 @@ from .base import BaseController, ControlResult
 
 
 class PIDController(BaseController):
+    """PID trajectory-tracking baseline with optional reference phase lead."""
+
     name = "pid"
 
     def __init__(
