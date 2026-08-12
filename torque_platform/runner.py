@@ -228,6 +228,13 @@ class ExperimentRunner:
             print(f"[RUN][SAVE] Saved safety log -> {safety_path}")
             return None
 
+        # Per-sample schema written by run():
+        #   t: elapsed time in seconds
+        #   q/dq: measured joint position and velocity
+        #   xr/dxr/ddxr: reference position, velocity, and acceleration
+        #   u_raw/u: controller output before and after the safety layer
+        #   safety: safety event associated with the sample
+        # Controller-specific diagnostic arrays are added from ControlResult.log.
         arrays = {key: np.asarray(value) for key, value in log.items()}
         arrays["p_duration"] = np.asarray(self.duration)
         arrays["p_dt"] = np.asarray(self.dt)
@@ -258,6 +265,7 @@ class ExperimentRunner:
         arrays["p_stop_on_loop_overrun"] = np.asarray(
             self.safety_config.stop_on_loop_overrun
         )
+        # p_* entries below are configuration snapshots saved with the run.
         arrays["p_controller"] = np.asarray(controller_name)
 
         _add_param_arrays(

@@ -1,147 +1,69 @@
 # Kinova TorqueLab
 
-Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级关节力矩控制实验框架。它把机器人连接、模式切换、实验循环、安全检查、控制器调用、数据保存和绘图放在统一流程中，让使用者可以把主要精力放在控制算法本身。
+Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级关节力矩控制实验框架。它统一处理 Kortex 通信、控制模式切换、实验循环、安全保护、数据记录和控制器调用，方便用户接入并验证自己的控制算法。
 
-框架默认面向两个受控关节，但参考轨迹、安全层和控制器接口都按向量组织。公开版本提供 PID 基线和 `hold` 调试控制器；放入 `torque_platform/controllers/` 的本地控制器会被自动发现。
+框架默认面向两个受控关节。公开版本提供可用的 PID 跟踪基线，以及用于短时通路检查的 `hold` 控制器。放入 `torque_platform/controllers/` 的本地控制器会被自动发现，不需要修改主循环。
 
-> `hold` 只是低增益 PD 调试控制器，没有重力补偿。它适合短时间检查连接、模式切换和数据通路，不能保证机械臂在重力作用下保持姿态。
+> `hold` 没有重力补偿，机械臂可能在负载下缓慢下沉。它只用于短时间检查通信、模式切换和数据通路，不应被当作可靠的位置保持控制器。
 
-## 运行流程
+## 环境
 
-```text
-config.py / CLI
-       |
-       v
-配置预检 -> 控制器创建 -> 机器人准备 -> 周期控制循环
-                                      |
-                         反馈 -> 控制器 -> 安全层 -> 力矩命令
-                                      |
-                                      v
-                              数据与安全日志
-```
+环境不需要严格锁定。建议使用 Python 3.10 或更高版本，并确保与机器人匹配的 Kinova Kortex Python API 能在当前环境中正常安装和导入。
 
-- `main.py` 负责参数解析、预检和组件装配。
-- `robot_interface.py` 封装 Kortex API 和控制模式切换。
-- `runner.py` 负责周期循环、数据采集和实验收尾。
-- `safety.py` 是所有控制器共用的最终安全层。
-- `controllers/` 中的每个文件提供一个可替换控制器。
-
-`DT` 是目标控制周期，不代表普通 Windows/Python 环境能够保证硬实时 1 kHz。评估控制器时应以保存数据中的 `t` 为准，并同时关注通信延迟和周期抖动。
-
-## 1. 安装环境
-
-环境不需要严格锁定。建议使用 Python 3.10 或更高版本；只要 Kinova Kortex Python API 能在当前 Python 环境中正常安装和导入，框架通常就可以运行。虚拟环境是可选的：
+安装框架依赖：
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-框架运行只依赖 `numpy`；`matplotlib` 用于实验后的自动绘图和离线绘图。`requirements.txt` 不锁定具体版本，由 `pip` 选择与当前 Python 兼容的版本。如果只运行控制且关闭自动绘图，可以不安装 `matplotlib`：
+`numpy` 用于控制计算，`matplotlib` 用于实验后的自动绘图和离线绘图。依赖不锁定具体版本，由 `pip` 选择与当前 Python 兼容的版本。Kortex API 请根据机器人固件和 Python 环境安装对应的官方 wheel。
 
-```python
-PLOT_AFTER_RUN = False
-```
+## 关键配置
 
-最后安装与机器人固件及当前 Python 环境匹配的 Kinova Kortex Python API wheel。仓库中的文件名只是示例，不要求必须使用 2.7.0：
+日常实验主要修改 `torque_platform/config.py`：
 
-```powershell
-python -m pip install .\kortex_api-2.7.0.post5-py3-none-any.whl
-```
+- 机器人连接信息。
+- `CONTROLLER`：当前控制器。
+- `TORQUE_JOINTS`：进入力矩模式的关节索引。
+- `START_ANGLES_DEG`：实验起始姿态。
+- `DURATION` 和 `DT`：实验时长与目标控制周期。
+- `REFERENCE_*`：参考轨迹。
+- `SAFETY_*`、位置边界和速度边界：最终安全限制。
+- `<CONTROLLER>_<PARAMETER>`：对应控制器的构造参数。
 
-Kortex wheel 可从 Kinova 官方 Artifactory 下载：
+`DT` 是目标周期，并不表示普通 Windows/Python 环境能够提供硬实时保证。评估实验时应以实际记录的时间为准。
 
-```text
-https://artifactory.kinovaapps.com/ui/repos/tree/General/generic-public/kortex/API/2.7.0
-```
+## 运行
 
-## 2. 配置机器人和实验
-
-日常使用主要修改 `torque_platform/config.py`：
-
-```python
-IP = "192.168.1.10"
-USERNAME = "admin"
-PASSWORD = "admin"
-
-CONTROLLER = "pid"
-TORQUE_JOINTS = [3, 5]       # Kortex 索引 3、5，即 J4、J6
-DURATION = 20.0
-DT = 0.001
-```
-
-同一文件还包含：
-
-- 初始关节角和正弦参考轨迹。
-- 最终力矩、位置、速度和周期超时保护。
-- PID 以及其他控制器的构造参数。
-- 实验结束后的绘图选项。
-
-命令行参数可以临时覆盖常用配置。运行 `python -m torque_platform --help` 可查看完整列表。
-
-## 3. 连接机械臂前先预检
-
-查看当前发现的控制器：
+查看已发现的控制器，不连接机器人：
 
 ```powershell
 python -m torque_platform --list-controllers
 ```
 
-检查参数长度、范围和控制器能否创建，不连接机器人：
+检查配置和控制器能否正确创建，不连接机器人：
 
 ```powershell
 python -m torque_platform --check-config
 ```
 
-成功时会输出：
-
-```text
-[CHECK][OK] Configuration is valid and controller 'pid' was created successfully.
-```
-
-预检会一次列出可操作的配置错误，例如占位 IP、重复关节、参考轨迹维度不一致、非正周期或非法限幅。
-
-## 4. 运行实验
-
-使用 `config.py` 中的设置：
+按 `config.py` 运行实验：
 
 ```powershell
 python -m torque_platform
 ```
 
-临时运行 5 秒 PID：
+命令行参数可以临时覆盖常用配置：
 
 ```powershell
 python -m torque_platform --controller pid --duration 5
 ```
 
-短时间检查力矩模式通路：
+上机前请确认机器人状态、起始姿态、受控关节、轨迹范围和安全限制。首次运行新控制器时应缩短实验时间并使用保守参数。
 
-```powershell
-python -m torque_platform --controller hold --duration 2
-```
+## 控制器
 
-`hold` 可能在重力作用下缓慢下沉。确认通信和模式切换后，应使用经过验证的 PID 或自己的控制器进行实验。
-
-上机前至少确认：
-
-- 机器人处于 ready 状态，急停和操作空间可用。
-- `TORQUE_JOINTS` 与控制器输出维度一致。
-- 初始角、轨迹幅值、速度和各关节力矩上限合理。
-- 首次试验使用较短 `DURATION`，并观察最终下发力矩 `u`。
-
-## 新增控制器
-
-1. 复制 `torque_platform/controllers/new_controller_template.py`。
-2. 修改文件名、类名和唯一的 `name`。
-3. 在 `reset()` 中初始化每次实验的内部状态。
-4. 在 `compute()` 中返回 `ControlResult`。
-5. 在 `config.py` 中添加以控制器名开头的参数。
-6. 运行控制器列表、配置预检和无硬件测试。
-
-最小接口如下：
+控制器继承 `BaseController`，实现以下两个方法：
 
 ```python
 class MyController(BaseController):
@@ -155,97 +77,37 @@ class MyController(BaseController):
         return ControlResult(torque=torque, log={"error": xr - q})
 ```
 
-接口约定：
+新增控制器时：
 
-- `t` 使用秒。
-- `q`、`xr` 使用 rad，`dq`、`dxr` 使用 rad/s。
-- 返回力矩使用 N*m，长度必须等于 `TORQUE_JOINTS`。
-- `log` 中的值应为标量或固定形状的 NumPy 数组。
-- 控制器可以带内部限幅，但最终命令仍会经过公共安全层。
+1. 复制 `torque_platform/controllers/new_controller_template.py`。
+2. 修改文件名、类名和唯一的 `name`。
+3. 在 `reset()` 中初始化状态，在 `compute()` 中实现控制律。
+4. 在 `config.py` 中添加控制器参数，并运行 `--list-controllers` 和 `--check-config`。
 
-控制器构造参数会自动从 `config.py` 读取。假设控制器名为 `my_controller`，构造参数名为 `gain`，对应配置写法是：
+控制器只负责根据反馈和参考轨迹计算力矩，不应直接调用 Kortex API。单位、返回值和日志约定已写在基类、控制器模板及运行器的代码注释中。
 
-```python
-MY_CONTROLLER_GAIN = [1.0, 1.0]
-```
+## 数据与绘图
 
-私有算法文件可以加入 `.gitignore` 或 `.git/info/exclude`，自动发现机制仍然有效。
+实验完成后，运行器会保存 `.npz` 数据和对应的安全事件日志。数据结构及字段含义记录在 `runner.py` 的写入代码旁。
 
-## 数据和绘图
-
-成功实验会在 `torque_platform/data/` 保存 `.npz` 和同名安全日志。主要字段包括：
-
-- `t`：实际采样时间。
-- `q`、`dq`：关节角和角速度。
-- `xr`、`dxr`、`ddxr`：参考轨迹。
-- `u_raw`：控制器原始输出。
-- `u`：公共安全层处理后的下发力矩。
-- `safety`：与样本对应的安全事件。
-- `p_*`：机器人、参考轨迹、安全层和控制器参数快照。
-
-显示最新实验：
+显示最新实验结果：
 
 ```powershell
 python -m torque_platform.plot_results
 ```
 
-保存指定数据的 PNG 和 PDF：
+只运行控制而不需要绘图时，可在 `config.py` 中设置：
 
-```powershell
-python -m torque_platform.plot_results torque_platform/data/example.npz `
-  --save --no-show --fmt png pdf
+```python
+PLOT_AFTER_RUN = False
 ```
 
-## 项目结构
+## 测试
 
-```text
-Kinova-TorqueLab/
-├─ README.md
-├─ requirements.txt
-├─ utilities.py
-├─ tests/
-└─ torque_platform/
-   ├─ __main__.py             # python -m torque_platform 入口
-   ├─ config.py               # 用户配置入口
-   ├─ main.py                 # CLI、预检与组件装配
-   ├─ validation.py           # 无硬件配置校验
-   ├─ runner.py               # 周期循环、记录和保存
-   ├─ robot_interface.py      # Kortex 接口与模式切换
-   ├─ reference.py            # 参考轨迹
-   ├─ safety.py               # 公共安全层
-   ├─ plot_results.py         # 离线绘图
-   └─ controllers/
-      ├─ base.py
-      ├─ registry.py
-      ├─ hold.py
-      ├─ pid.py
-      └─ new_controller_template.py
-```
-
-## 无硬件测试
-
-测试不连接机器人：
+无硬件测试不会连接机器人：
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-测试覆盖配置预检、PID/hold 接口以及公共安全层。新的控制器建议增加确定性的数值测试，并与原论文、MATLAB 或仿真实现对照。
-
-## 常见问题
-
-`No module named kortex_api`
-
-安装与固件匹配的 Kortex wheel，并确认当前终端已激活正确虚拟环境。
-
-`hold` 下机械臂缓慢下沉
-
-这是预期的能力边界。`hold` 没有机器人动力学或重力补偿，只用于短时调试。
-
-找不到新控制器
-
-确认控制器文件位于 `torque_platform/controllers/`，类继承 `BaseController`，`name` 非空且不与其他控制器重复，然后运行 `--list-controllers`。
-
-控制周期达不到 1 ms
-
-先根据数据中的 `t` 统计真实周期，再区分 Kortex 通信、控制器计算、终端输出和操作系统调度开销。普通 Python 进程不提供硬实时保证。
+GitHub Actions 会自动运行相同测试。新增控制器时，建议增加确定性的数值测试，并与原始仿真或算法实现进行对照。
