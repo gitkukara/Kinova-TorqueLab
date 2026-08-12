@@ -25,7 +25,6 @@ Kinova-TorqueLab/
 │  ├─ validation.py          # 运行前配置检查
 │  ├─ reference.py           # 参考轨迹
 │  └─ plot_results.py        # 实验结果绘图
-└─ tests/                    # 自动测试
 ```
 
 标记为 `[主要修改]` 的位置是日常使用入口。其余文件负责框架公共流程，通常不需要修改。
@@ -125,13 +124,3 @@ python -m torque_platform.plot_results
 ```python
 PLOT_AFTER_RUN = False
 ```
-
-## 测试
-
-无硬件测试不会连接机器人：
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-GitHub Actions 会自动运行相同测试。新增控制器时，建议增加确定性的数值测试，并与原始仿真或算法实现进行对照。
