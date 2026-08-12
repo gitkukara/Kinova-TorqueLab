@@ -30,16 +30,22 @@ config.py / CLI
 
 ## 1. 安装环境
 
-建议使用 Python 3.11 和独立虚拟环境：
+环境不需要严格锁定。建议使用 Python 3.10 或更高版本；只要 Kinova Kortex Python API 能在当前 Python 环境中正常安装和导入，框架通常就可以运行。虚拟环境是可选的：
 
 ```powershell
-py -3.11 -m venv .venv
+py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-然后安装与机器人固件匹配的 Kinova Kortex Python API wheel：
+框架运行只依赖 `numpy`；`matplotlib` 用于实验后的自动绘图和离线绘图。`requirements.txt` 不锁定具体版本，由 `pip` 选择与当前 Python 兼容的版本。如果只运行控制且关闭自动绘图，可以不安装 `matplotlib`：
+
+```python
+PLOT_AFTER_RUN = False
+```
+
+最后安装与机器人固件及当前 Python 环境匹配的 Kinova Kortex Python API wheel。仓库中的文件名只是示例，不要求必须使用 2.7.0：
 
 ```powershell
 python -m pip install .\kortex_api-2.7.0.post5-py3-none-any.whl

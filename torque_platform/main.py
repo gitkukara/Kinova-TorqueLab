@@ -27,7 +27,6 @@ from robot_interface import KinovaTorqueInterface
 from runner import ExperimentRunner
 from safety import SafetyConfig
 from validation import validate_experiment_args
-from plot_results import plot_results
 import utilities
 import config
 
@@ -383,6 +382,17 @@ def main():
     if ok:
         data_path = runner.save(log, controller.name)
         if data_path and args.plot_after_run:
+            try:
+                from plot_results import plot_results
+            except ImportError as exc:
+                if exc.name == "matplotlib":
+                    print(
+                        "[RUN][WARN] Plotting skipped because matplotlib is not "
+                        "installed. Install it with 'python -m pip install matplotlib' "
+                        "or set PLOT_AFTER_RUN = False."
+                    )
+                    return
+                raise
             plot_results(
                 data_path,
                 save=args.plot_save,
