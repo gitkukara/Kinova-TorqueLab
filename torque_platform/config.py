@@ -68,14 +68,21 @@ STOP_ON_LOOP_OVERRUN = True
 # Kortex 关节索引：默认使用 J4/J6 -> 3,5。
 TORQUE_JOINTS = [3, 5]
 START_ANGLES_DEG = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -90.0]
+# START_ANGLES_DEG 是 7 个关节的目标起始角，单位 deg。
+# 默认受控关节为索引 3 和 5，因此其目标起始角分别取列表中的第 4、6 个值。
+# 机械臂到位后的实际反馈才是控制器使用的 q0，可能与目标角存在少量偏差。
 
 
 # 参考轨迹设置
 # 公式：xr(t) = center + amplitude * sin(2*pi*t/period)
 # center 使用弧度(rad)，amplitude 使用度(deg)，period 使用秒(s)。
+# 以下三个列表按照 TORQUE_JOINTS 的顺序逐一对应受控关节。
 REFERENCE_CENTER_RAD = [0.0, 0.0]
 REFERENCE_AMPLITUDE_DEG = [15.0, 15.0]
 REFERENCE_PERIOD_S = [5.0, 5.0]
+# 未设置相位提前时，正弦轨迹初值 xr(0) 等于 REFERENCE_CENTER_RAD。
+# 初始位置误差应按 xr(0) - q0 计算，并注意这里的单位为 rad。
+# PID 会按 PID_PHASE_LEAD_S 提前采样，因此其实际初始参考值通常不等于中心值。
 
 
 # PID 控制器参数
