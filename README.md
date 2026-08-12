@@ -78,7 +78,7 @@ python -m pip install -r requirements.txt
 - `SAFETY_*`、位置边界和速度边界：最终安全限制。
 - `<CONTROLLER>_<PARAMETER>`：对应控制器的构造参数。
 
-`DT` 是目标周期，并不表示普通 Windows/Python 环境能够提供硬实时保证。评估实验时应以实际记录的时间为准。
+`DT` 是目标控制周期。例如 `DT = 0.001` 表示目标频率为 1 kHz，但受 Kortex 通信、网络延迟、系统调度和 Python 循环开销等因素影响，实际控制频率通常达不到 1 kHz，也不具备硬实时保证。评估实验时应以实际记录的时间为准。
 
 ## 运行
 
