@@ -30,6 +30,17 @@ Kinova-TorqueLab/
 
 标记为 `（主要修改）` 的位置是日常使用入口。需要更换默认轨迹或图表风格时，再修改标记为 `（按需修改）` 的文件。其余文件负责框架公共流程，通常不需要修改。
 
+## 获取项目
+
+推荐使用 Git 克隆仓库，便于后续获取更新：
+
+```powershell
+git clone https://github.com/gitkukara/Kinova-TorqueLab.git
+cd Kinova-TorqueLab
+```
+
+未安装 Git 时，也可以在 GitHub 仓库页面点击 `Code` → `Download ZIP`，解压后进入项目根目录。ZIP 只包含下载时的代码快照，不能直接使用 `git pull` 获取后续更新。
+
 ## 环境依赖
 
 Windows 或 Linux 系统，需要提前安装：
@@ -77,6 +88,16 @@ python -m pip install -r requirements.txt
 - `REFERENCE_*`：参考轨迹。
 - `SAFETY_*`、位置边界和速度边界：最终安全限制。
 - `<CONTROLLER>_<PARAMETER>`：对应控制器的构造参数。
+
+首次上机前，必须在 `config.py` 中将连接信息的占位值替换为机械臂的实际信息，否则运行前配置检查会终止程序：
+
+```python
+IP = "机械臂实际 IP"
+USERNAME = "实际用户名"
+PASSWORD = "实际密码"
+```
+
+真实连接信息应只保留在本地，不要提交到公开仓库。
 
 `DT` 是目标控制周期。例如 `DT = 0.001` 表示目标频率为 1 kHz，但受 Kortex 通信、网络延迟、系统调度和 Python 循环开销等因素影响，实际控制频率通常达不到 1 kHz，也不具备硬实时保证。评估实验时应以实际记录的时间为准。
 
