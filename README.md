@@ -1,8 +1,8 @@
 # Kinova TorqueLab
 
-Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级关节力矩控制实验框架。它统一处理 Kortex 通信、控制模式切换、实验循环、安全保护、数据记录和控制器调用，方便用户接入并验证自己的控制算法。
+Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级关节**力矩控制实验**框架。它统一处理 Kortex 通信、控制模式切换、实验循环、安全保护、数据记录和控制器调用，方便用户接入并验证自己的控制算法。
 
-框架默认面向两个受控关节。公开版本提供可用的 PID 跟踪基线，以及用于短时通路检查的 `hold` 控制器。放入 `torque_platform/controllers/` 的本地控制器会被自动发现，不需要修改主循环。
+框架**默认面向两个受控关节**。公开版本提供可用的 PID 跟踪基线，以及用于短时通路检查的 `hold` 控制器。放入 `torque_platform/controllers/` 的本地控制器会被自动发现，不需要修改主循环。
 
 > `hold` 没有重力补偿，机械臂可能在负载下缓慢下沉。它只用于短时间检查通信、模式切换和数据通路，不应被当作可靠的位置保持控制器。
 
@@ -14,21 +14,21 @@ Kinova-TorqueLab/
 ├─ requirements.txt
 ├─ .vscode/launch.json       # VS Code 运行与绘图入口（可选）
 ├─ torque_platform/
-│  ├─ config.py              # [主要修改] 实验、安全与控制器参数
-│  ├─ controllers/           # [主要修改] 接入和调整控制算法
+│  ├─ config.py              # 实验、安全与控制器参数（主要修改）
+│  ├─ controllers/           # 接入和调整控制算法（主要修改）
 │  │  ├─ pid.py              # PID 跟踪基线
 │  │  ├─ hold.py             # 短时通路检查
-│  │  └─ new_controller_template.py  # 新控制器模板
+│  │  └─ new_controller_template.py  # 新控制器模板（接入你的控制器）
 │  ├─ main.py / __main__.py  # 框架入口与组件装配
 │  ├─ runner.py              # 控制循环、记录与保存
 │  ├─ robot_interface.py     # Kortex 通信与模式切换
 │  ├─ safety.py              # 公共安全层
-│  ├─ validation.py          # 运行前配置合法性检查（通常无需修改）
-│  ├─ reference.py           # [按需修改] 参考轨迹生成
-│  └─ plot_results.py        # [按需修改] 绘图内容与样式
+│  ├─ validation.py          # 运行前配置合法性检查
+│  ├─ reference.py           # 参考轨迹生成（按需修改）
+│  └─ plot_results.py        # 绘图内容与样式（按需修改）
 ```
 
-标记为 `[主要修改]` 的位置是日常使用入口。需要更换默认轨迹或图表风格时，再修改标记为 `[按需修改]` 的文件。其余文件负责框架公共流程，通常不需要修改。
+标记为 `（主要修改）` 的位置是日常使用入口。需要更换默认轨迹或图表风格时，再修改标记为 `（按需修改）` 的文件。其余文件负责框架公共流程，通常不需要修改。
 
 ## 环境依赖
 
