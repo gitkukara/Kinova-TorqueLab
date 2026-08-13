@@ -112,6 +112,10 @@ python -m torque_platform --controller pid --duration 5
 
 ## 控制器
 
+### 控制器公开说明
+
+本人论文中采用的 PPC/BRL-PPC 控制器涉及尚在审稿的研究成果，现阶段暂不公开。本仓库提供统一的控制器接入接口与可运行的 PID 跟踪基线，便于用户接入并验证自己的控制算法。
+
 控制器继承 `BaseController`，实现以下两个方法：
 
 ```python
