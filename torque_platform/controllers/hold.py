@@ -1,4 +1,4 @@
-"""保持初始关节位置的低增益 PD 控制器。"""
+"""用于短时通路检查的低增益 PD 控制器。"""
 
 import numpy as np
 
@@ -6,6 +6,8 @@ from .base import BaseController, ControlResult
 
 
 class HoldController(BaseController):
+    """不含重力补偿的低增益 PD 调试控制器，负载下可能缓慢下沉。"""
+
     name = "hold"
 
     def __init__(

@@ -29,17 +29,17 @@ class SafetyResult:
 
 
 SAFETY_HINTS = {
-    "POSITION_BOUND": "Joint moved beyond the configured position window; check reference amplitude, controller gains, and start pose.",
-    "VELOCITY_BOUND": "Joint speed exceeded the configured limit; check gains, trajectory speed, and possible communication stalls.",
-    "FEEDBACK_NONFINITE": "Robot feedback contains NaN or Inf; check cyclic feedback, API state, and network stability.",
-    "TORQUE_NONFINITE": "Controller produced NaN or Inf torque; check controller math, divisions, matrix operations, and internal states.",
-    "TORQUE_DIMENSION": "Controller torque vector length does not match TORQUE_JOINTS.",
-    "TORQUE_RATE_LIMITED": "Torque command changed faster than TORQUE_RATE_LIMIT and was smoothed before sending.",
-    "TORQUE_CLIPPED": "Torque command exceeded the final safety torque limit and was clipped before sending.",
-    "LOOP_OVERRUN": "Control loop took too long; likely communication latency, slow controller computation, or OS scheduling delay.",
-    "COMMUNICATION_REFRESH": "Cyclic Refresh failed; check network, Kortex connection, robot fault state, and real-time UDP path.",
-    "CLEANUP_FAILED": "Cleanup raised an exception; robot may not have completed zero-torque, mode switch, or return-home.",
-    "SAFETY_EVENT": "Unclassified safety event; inspect the detailed message and nearby logs.",
+    "POSITION_BOUND": "关节超出设定的位置窗口，请检查轨迹幅值、控制器增益和起始姿态。",
+    "VELOCITY_BOUND": "关节速度超过设定上限，请检查控制器增益、轨迹速度和通信是否卡顿。",
+    "FEEDBACK_NONFINITE": "反馈中出现 NaN 或 Inf，请检查周期反馈、API 状态和网络稳定性。",
+    "TORQUE_NONFINITE": "控制器输出 NaN 或 Inf，请检查除法、矩阵运算和内部状态。",
+    "TORQUE_DIMENSION": "控制器输出的力矩向量长度与 TORQUE_JOINTS 不一致。",
+    "TORQUE_RATE_LIMITED": "力矩变化超过 TORQUE_RATE_LIMIT，下发前已进行变化率限制。",
+    "TORQUE_CLIPPED": "力矩指令超过最终安全上限，下发前已进行限幅。",
+    "LOOP_OVERRUN": "控制周期耗时过长，可能由通信延迟、控制器计算较慢或系统调度延迟引起。",
+    "COMMUNICATION_REFRESH": "周期刷新失败，请检查网络、Kortex 连接、机械臂故障状态和实时 UDP 通路。",
+    "CLEANUP_FAILED": "清理阶段发生异常，机械臂可能未完成零力矩、模式恢复或返回起始姿态。",
+    "SAFETY_EVENT": "未分类的安全事件，请结合详细消息和相邻日志检查。",
 }
 
 
@@ -48,10 +48,15 @@ def _limit_array(value, size, name, allow_none=False):
         return None
     array = np.asarray(value, dtype=float)
     if array.ndim == 0:
-        return np.full(size, float(array), dtype=float)
-    array = array.reshape(-1)
+        array = np.full(size, float(array), dtype=float)
+    else:
+        array = array.reshape(-1)
     if array.size != size:
-        raise ValueError(f"{name} must be scalar or contain {size} values")
+        raise ValueError(f"{name} 必须是单个数值，或包含 {size} 个关节对应值")
+    if not np.all(np.isfinite(array)):
+        raise ValueError(f"{name} 只能包含有限数值，不能出现 NaN 或 Inf")
+    if np.any(array <= 0.0):
+        raise ValueError(f"{name} 中的数值必须全部大于 0")
     return array
 
 
@@ -75,7 +80,7 @@ class SafetyMonitor:
 
         if self.config.stop_on_nonfinite_feedback:
             if not np.all(np.isfinite(q)) or not np.all(np.isfinite(dq)):
-                return self._stop(t, "non-finite feedback")
+                return self._stop(t, "反馈中出现非有限数值")
 
         if self.q_center is not None and self.config.stop_on_position_bound:
             limit = _limit_array(self.config.position_bound, q.size, "position_bound")
@@ -83,7 +88,7 @@ class SafetyMonitor:
             if np.any(offset > limit):
                 return self._stop(
                     t,
-                    f"position bound exceeded: offset={offset}, limit={limit}",
+                    f"位置超出边界：偏移={offset}，上限={limit}",
                 )
 
         if self.config.stop_on_velocity_bound:
@@ -92,7 +97,7 @@ class SafetyMonitor:
             if np.any(speed > limit):
                 return self._stop(
                     t,
-                    f"velocity bound exceeded: speed={speed}, limit={limit}",
+                    f"速度超出边界：速度={speed}，上限={limit}",
                 )
 
         return ""
@@ -113,8 +118,8 @@ class SafetyMonitor:
         self.loop_overrun_count += 1
         max_count = max(int(self.config.loop_overrun_max_consecutive), 1)
         message = (
-            f"control loop overrun {self.loop_overrun_count}/{max_count}: "
-            f"elapsed={elapsed_s:.6f}s, limit={limit:.6f}s"
+            f"控制周期超时 {self.loop_overrun_count}/{max_count}："
+            f"耗时={elapsed_s:.6f}s，上限={limit:.6f}s"
         )
 
         if self.loop_overrun_count >= max_count:
@@ -129,8 +134,8 @@ class SafetyMonitor:
 
         if self.previous_torque is not None and torque.size != self.previous_torque.size:
             reason = (
-                f"torque dimension mismatch: got {torque.size}, "
-                f"expected {self.previous_torque.size}"
+                f"力矩向量长度不一致：实际为 {torque.size}，"
+                f"应为 {self.previous_torque.size}"
             )
             reason = self._stop(t, reason)
             result = SafetyResult(
@@ -142,7 +147,7 @@ class SafetyMonitor:
             return result
 
         if self.config.stop_on_nonfinite_torque and not np.all(np.isfinite(torque)):
-            reason = "non-finite torque command"
+            reason = "力矩指令中出现非有限数值"
             reason = self._stop(t, reason)
             result = SafetyResult(
                 torque=np.zeros_like(self.previous_torque),
@@ -165,14 +170,14 @@ class SafetyMonitor:
             clipped_delta = np.clip(delta, -rate_limit, rate_limit)
             if not np.allclose(delta, clipped_delta):
                 events.append(
-                    f"torque rate limited: raw_delta={delta}, limit={rate_limit}"
+                    f"力矩变化率已限制：原始变化量={delta}，上限={rate_limit}"
                 )
             limited = self.previous_torque + clipped_delta
 
         torque_limit = _limit_array(self.config.torque_limit, limited.size, "torque_limit")
         clipped = np.clip(limited, -torque_limit, torque_limit)
         if not np.allclose(limited, clipped):
-            events.append(f"torque clipped: raw={limited}, limit={torque_limit}")
+            events.append(f"力矩已限幅：原始值={limited}，上限={torque_limit}")
         limited = clipped
 
         self.previous_torque = limited.copy()
@@ -201,28 +206,28 @@ class SafetyMonitor:
             return message
         code = self._classify(message)
         hint = SAFETY_HINTS.get(code, SAFETY_HINTS["SAFETY_EVENT"])
-        return f"[SAFETY][{level}][{code}] {message} | hint={hint}"
+        return f"[SAFETY][{level}][{code}] {message} | 建议={hint}"
 
     def _classify(self, message):
         text = message.lower()
-        if "position bound exceeded" in text:
+        if "位置超出边界" in text:
             return "POSITION_BOUND"
-        if "velocity bound exceeded" in text:
+        if "速度超出边界" in text:
             return "VELOCITY_BOUND"
-        if "non-finite feedback" in text:
+        if "反馈中出现非有限数值" in text:
             return "FEEDBACK_NONFINITE"
-        if "non-finite torque" in text:
+        if "力矩指令中出现非有限数值" in text:
             return "TORQUE_NONFINITE"
-        if "torque dimension mismatch" in text:
+        if "力矩向量长度不一致" in text:
             return "TORQUE_DIMENSION"
-        if "torque rate limited" in text:
+        if "力矩变化率已限制" in text:
             return "TORQUE_RATE_LIMITED"
-        if "torque clipped" in text:
+        if "力矩已限幅" in text:
             return "TORQUE_CLIPPED"
-        if "control loop overrun" in text:
+        if "控制周期超时" in text:
             return "LOOP_OVERRUN"
-        if "communication refresh failed" in text:
+        if "通信刷新失败" in text:
             return "COMMUNICATION_REFRESH"
-        if "cleanup failed" in text:
+        if "清理失败" in text:
             return "CLEANUP_FAILED"
         return "SAFETY_EVENT"

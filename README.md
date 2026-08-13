@@ -1,31 +1,34 @@
-﻿# Kinova TorqueLab
+# Kinova TorqueLab
 
-Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级力矩控制实验框架，用于快速接入、切换和验证不同关节力矩控制算法。
+Kinova TorqueLab 是一个面向 Kinova Gen3 的轻量级关节力矩控制实验框架。它统一处理 Kortex 通信、控制模式切换、实验循环、安全保护、数据记录和控制器调用，方便用户接入并验证自己的控制算法。
 
-本框架基于 [Kinova Kortex API](https://github.com/Kinovarobotics/Kinova-kortex2_Gen3_G3L)，默认面向两关节实验，集成了机器人连接、参考轨迹生成、控制器注册、安全限幅、实时控制循环和数据记录。新的控制算法通常只需要新增一个控制器文件，不需要改动主循环。
+框架默认面向两个受控关节。公开版本提供可用的 PID 跟踪基线，以及用于短时通路检查的 `hold` 控制器。放入 `torque_platform/controllers/` 的本地控制器会被自动发现，不需要修改主循环。
 
+> `hold` 没有重力补偿，机械臂可能在负载下缓慢下沉。它只用于短时间检查通信、模式切换和数据通路，不应被当作可靠的位置保持控制器。
 
 ## 项目结构
 
 ```text
 Kinova-TorqueLab/
 ├─ README.md
-├─ utilities.py
-└─ torque_platform/
-   ├─ main.py                 # 程序入口，读取配置并启动实验
-   ├─ config.py               # 日常调参入口
-   ├─ runner.py               # 1 kHz 实验循环、日志记录和数据保存
-   ├─ robot_interface.py      # Kinova/Kortex 连接、模式切换和力矩下发
-   ├─ reference.py            # 参考轨迹生成
-   ├─ safety.py               # 安全检查和限幅
-   └─ controllers/
-      ├─ base.py              # 控制器统一接口
-      ├─ registry.py          # 自动发现控制器
-      ├─ hold.py              # 初始位置保持控制器
-      ├─ pid.py               # PID 跟踪控制器
-      └─ new_controller_template.py
+├─ requirements.txt
+├─ .vscode/launch.json       # VS Code 运行与绘图入口（可选）
+├─ torque_platform/
+│  ├─ config.py              # [主要修改] 实验、安全与控制器参数
+│  ├─ controllers/           # [主要修改] 接入和调整控制算法
+│  │  ├─ pid.py              # PID 跟踪基线
+│  │  ├─ hold.py             # 短时通路检查
+│  │  └─ new_controller_template.py  # 新控制器模板
+│  ├─ main.py / __main__.py  # 框架入口与组件装配
+│  ├─ runner.py              # 控制循环、记录与保存
+│  ├─ robot_interface.py     # Kortex 通信与模式切换
+│  ├─ safety.py              # 公共安全层
+│  ├─ validation.py          # 运行前配置合法性检查（通常无需修改）
+│  ├─ reference.py           # [按需修改] 参考轨迹生成
+│  └─ plot_results.py        # [按需修改] 绘图内容与样式
 ```
 
+标记为 `[主要修改]` 的位置是日常使用入口。需要更换默认轨迹或图表风格时，再修改标记为 `[按需修改]` 的文件。其余文件负责框架公共流程，通常不需要修改。
 
 ## 环境依赖
 
@@ -33,15 +36,16 @@ Windows 或 Linux 系统，需要提前安装：
 
 - Python 3.11 或相近版本
 - `numpy`
+- `matplotlib`（绘图时使用）
 - Kinova Kortex Python API
 
-其中 Kinova Kortex Python API 需要从 Kinova 官方 Artifactory 下载机械臂硬件对应版本的 `.whl` 文件，如 2.7.0 版本链接如下：
+Kinova Kortex Python API 需要从 Kinova 官方 Artifactory 下载与机械臂硬件和固件对应的 `.whl` 文件。例如 2.7.0 版本：
 
 ```text
 https://artifactory.kinovaapps.com/ui/repos/tree/General/generic-public/kortex/API/2.7.0
 ```
 
-下载后在终端中进入项目所在环境，使用 `pip` 安装该 wheel 文件：
+下载后进入 wheel 所在目录并安装：
 
 Windows：
 
@@ -55,94 +59,96 @@ Linux：
 python3 -m pip install ./kortex_api-2.7.0.post5-py3-none-any.whl
 ```
 
-
-## 快速运行
-
-实验前建议先看这几个文件：
-
-- `torque_platform/config.py`：最主要的调参入口。机器人连接、实验时长、受控关节、初始位置、参考轨迹、安全限幅和控制器参数都优先在这里修改。
-- `.vscode/launch.json`：VS Code 调试入口。适合直接启动默认实验，或启动短时间 `hold` 测试。
-- `torque_platform/controllers/`：控制器文件夹。新增算法通常只需要在这里新增一个控制器文件。
-- `torque_platform/main.py`：程序入口。一般不需要改，除非要新增命令行参数或改变整体运行流程。
-
-当前已有控制器：
-
-- `hold`：低增益 PD 保持进入实验时的初始位置，适合先检查力矩模式和安全流程。
-- `pid`：带相位提前的 PID 轨迹跟踪控制器，适合基础跟踪实验。
-
-日常使用时，通常只需要在 `config.py` 中选择控制器并调整参数，然后运行：
+框架的其余依赖也可以通过以下命令安装：
 
 ```powershell
-py torque_platform/main.py
+python -m pip install -r requirements.txt
 ```
 
-也可以用命令行临时覆盖部分参数：
+## 关键配置
+
+日常实验主要修改 `torque_platform/config.py`：
+
+- 机器人连接信息。
+- `CONTROLLER`：当前控制器。
+- `TORQUE_JOINTS`：进入力矩模式的关节索引。
+- `START_ANGLES_DEG`：实验起始姿态。
+- `DURATION` 和 `DT`：实验时长与目标控制周期。
+- `REFERENCE_*`：参考轨迹。
+- `SAFETY_*`、位置边界和速度边界：最终安全限制。
+- `<CONTROLLER>_<PARAMETER>`：对应控制器的构造参数。
+
+`DT` 是目标控制周期。例如 `DT = 0.001` 表示目标频率为 1 kHz，但受 Kortex 通信、网络延迟、系统调度和 Python 循环开销等因素影响，实际控制频率通常达不到 1 kHz，也不具备硬实时保证。评估实验时应以实际记录的时间为准。
+
+## 运行
+
+查看已发现的控制器，不连接机器人：
 
 ```powershell
-py torque_platform/main.py --controller hold --duration 5
+python -m torque_platform --list-controllers
 ```
 
-VS Code 中可以直接使用 `.vscode/launch.json` 里的运行配置：
+检查配置和控制器能否正确创建，不连接机器人：
 
-- `实验：按 config.py 运行`：按 `config.py` 当前设置启动完整实验。
-- `实验：hold 保持 5 秒`：短时间运行 `hold` 控制器，用于检查连接、模式切换和基础安全流程。
-- `绘图：显示最新数据`：自动读取最新 `.npz` 数据并显示速览图。
-- `绘图：显示指定数据`：手动输入 `.npz` 数据文件路径并显示图像。
-- `绘图：保存指定数据 PNG+PDF`：手动输入 `.npz` 数据文件路径，并把图像保存到 `figures/`。
+```powershell
+python -m torque_platform --check-config
+```
 
+按 `config.py` 运行实验：
 
-## 新增控制器
+```powershell
+python -m torque_platform
+```
 
-1. 复制模板 `torque_platform/controllers/new_controller_template.py`。
-2. 重命名，例如 `my_controller.py`。
-3. 修改模板内的类名和 `name`。
-4. 实现 `reset()` 和 `compute()`。
-5. 在 `config.py` 中设置：
+命令行参数可以临时覆盖常用配置：
+
+```powershell
+python -m torque_platform --controller pid --duration 5
+```
+
+也可以在 VS Code 的“运行和调试”中选择 `Experiment: run config.py`，直接按 `config.py` 启动实验。`launch.json` 内部仍然运行 `torque_platform/main.py`，与 `python -m torque_platform` 使用同一套配置和控制流程；它只是可选的便捷入口。绘图也可以使用其中的 `Plot` 配置。
+
+上机前请确认机器人状态、起始姿态、受控关节、轨迹范围和安全限制。首次运行新控制器时应缩短实验时间并使用保守参数。
+
+## 控制器
+
+控制器继承 `BaseController`，实现以下两个方法：
 
 ```python
-CONTROLLER = "my_controller"
+class MyController(BaseController):
+    name = "my_controller"
+
+    def reset(self, q0, dq0=None):
+        ...
+
+    def compute(self, t, q, dq, xr, dxr, ddxr):
+        torque = ...
+        return ControlResult(torque=torque, log={"error": xr - q})
 ```
 
-`controllers/registry.py` 会自动发现继承 `BaseController` 且带唯一 `name` 的控制器，不需要手动注册。
+新增控制器时：
 
+1. 复制 `torque_platform/controllers/new_controller_template.py`。
+2. 修改文件名、类名和唯一的 `name`。
+3. 在 `reset()` 中初始化状态，在 `compute()` 中实现控制律。
+4. 在 `config.py` 中添加控制器参数，并运行 `--list-controllers` 和 `--check-config`。
 
-## 数据输出
+控制器只负责根据反馈和参考轨迹计算力矩，不应直接调用 Kortex API。单位、返回值和日志约定已写在基类、控制器模板及运行器的代码注释中。
 
-实验结束后，`runner.py` 会保存 `.npz` 数据文件，主要字段包括：
+## 数据与绘图
 
-- `t`: 时间
-- `q`, `dq`: 实际关节角和角速度
-- `xr`, `dxr`, `ddxr`: 参考轨迹
-- `u_raw`: 控制器原始输出
-- `u`: 安全层处理后的实际下发力矩
-- `safety`: 安全事件信息
+实验完成后，运行器会保存 `.npz` 数据和对应的安全事件日志。数据结构及字段含义记录在 `runner.py` 的写入代码旁。
 
-同时会生成同名 `_safety_events.txt`，用于记录限幅或停机事件。
+默认参考轨迹由 `reference.py` 生成；需要使用其他轨迹时，可替换轨迹类，但应保持 `sample()` 返回参考位置、速度和加速度。默认图表的曲线、标题和样式集中在 `plot_results.py` 中，可按实验需求修改。
 
-默认情况下，实验结束并保存 `.npz` 后会自动弹出本次实验的速览图，但不会保存图片。速览图包括跟踪表现、跟踪误差、控制力矩三类，每类图会按受控关节数量自动生成对应数量的子图。
+显示最新实验结果：
 
-如需关闭自动绘图，可以在 `config.py` 中设置：
+```powershell
+python -m torque_platform.plot_results
+```
+
+只运行控制而不需要绘图时，可在 `config.py` 中设置：
 
 ```python
 PLOT_AFTER_RUN = False
 ```
-
-也可以用离线绘图脚本查看已有实验结果：
-
-```powershell
-py torque_platform/plot_results.py
-```
-
-也可以指定数据文件并保存图片。默认会同时保存 PNG 和 PDF：
-
-```powershell
-py torque_platform/plot_results.py torque_platform/data/xxx.npz --save
-```
-
-
-## 注意事项
-
-- 上机前确认 Kinova 官方界面中机械臂处于 ready 状态。
-- 首次实验建议使用 `hold` 或小幅值 `pid`。
-- 保守设置 `SAFETY_TORQUE_LIMIT`、`TORQUE_RATE_LIMIT`、`POSITION_BOUND` 和 `VELOCITY_BOUND`。
-- 控制器内部可以自带限幅，但框架安全层会在最终下发前再做一次保护。

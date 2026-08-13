@@ -9,6 +9,8 @@ from .base import BaseController, ControlResult
 
 
 class PIDController(BaseController):
+    """支持参考轨迹相位提前的 PID 轨迹跟踪基线。"""
+
     name = "pid"
 
     def __init__(
